@@ -168,3 +168,132 @@ def test_ack_over_rest_matches_the_cab_socket(client):
     assert writes.acknowledge_alert("AL-T021") is True                  # the socket's code path
     assert client.post("/api/alerts/AL-NOPE/ack").status_code == 404
     assert writes.acknowledge_alert("AL-NOPE") is False
+
+
+# ---------------------------------------------------------------- spec section 2 endpoints (B2-5)
+
+from test_live_pipeline import msg, person
+
+
+def test_health(client):
+    r = client.get("/api/health")
+    assert r.status_code == 200 and r.json() == {"status": "ok"}
+
+
+def test_incident_list_filters_and_manual_report(client):
+    posted = client.post("/api/incidents", json={"machine_id": "TESTM5", "operator_id": "OP7005",
+                                                 "incident_type": "manual_near_miss", "severity": "warning",
+                                                 "note": "Close call at the gate"})
+    assert posted.status_code == 200 and posted.json()["status"] == "recorded"
+
+    by_operator = client.get("/api/incidents", params={"operator_id": "OP7005"}).json()
+    assert [i["cause"] for i in by_operator] == ["Close call at the gate"]
+    assert by_operator[0]["source"] == "operator" and by_operator[0]["incident_type"] == "manual_near_miss"
+    assert {"id", "machine_id", "operator_id", "incident_type", "severity", "source", "timestamp"} <= set(by_operator[0])
+    assert client.get("/api/incidents", params={"machine_id": "TESTM5"}).json() == by_operator
+    assert client.get("/api/incidents", params={"operator_id": "NOBODY"}).json() == []
+
+    seeded = client.get("/api/incidents", params={"operator_id": "OP1001"}).json()   # seeded from incidents.csv
+    assert seeded and all(i["operator_id"] == "OP1001" for i in seeded)
+
+
+def test_manual_incident_needs_a_machine(client):
+    assert client.post("/api/incidents", json={"operator_id": "OP1"}).status_code == 422
+
+
+def test_tasks_today_is_empty_until_a_shift_starts(client):
+    r = client.get("/api/tasks/today", params={"operator_id": "OP7777"})
+    assert r.status_code == 200 and r.json() == {"operator_id": "OP7777", "tasks": []}
+    assert client.get("/api/tasks/today").status_code == 422
+
+
+def test_digest_for_a_known_and_an_unknown_operator(client):
+    for operator_id in ("OP1001", "OP7777"):
+        r = client.get(f"/api/digest/{operator_id}")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["operator_id"] == operator_id
+        assert {"profile", "baseline", "tasks", "alerts_by_severity", "anomaly_counts", "idle_min",
+                "fuel_used_l", "went_well", "suggested_training", "incident_count",
+                "recent_incidents"} <= set(body)
+        assert set(body["alerts_by_severity"]) == {"warning", "high", "critical"}
+    assert client.get("/api/digest/OP1001").json()["profile"]["operator_id"] == "OP1001"
+
+
+def test_training_recommendations_list_the_catalogue(client):
+    r = client.get("/api/training/recommendations/OP1001")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["operator_id"] == "OP1001" and isinstance(body["recommendations"], list)
+    assert len(body["modules"]) == 13
+    for rec in body["recommendations"]:
+        assert {"module_id", "title", "reason"} <= set(rec)
+
+
+def test_readiness_history_newest_first(client):
+    for n, score in enumerate((70, 55, 82)):
+        writes.save_readiness("TESTM6", {"readiness_score": score, "readiness_breakdown": {"seatbelt": score}},
+                              T0 + timedelta(minutes=n))
+    rows = client.get("/api/readiness/history", params={"machine_id": "TESTM6"}).json()
+    assert [r["readiness_score"] for r in rows] == [82, 55, 70]
+    assert rows[0]["readiness_breakdown"] == {"seatbelt": 82} and rows[0]["timestamp"]
+    assert client.get("/api/readiness/history", params={"machine_id": "NOBODY"}).json() == []
+    assert client.get("/api/readiness/history").status_code == 422
+
+
+# ---------------------------------------------------------------- websockets (B2-5)
+
+def test_telemetry_socket_reports_bad_input_in_the_spec_shape(client):
+    with client.websocket_connect("/ws/telemetry") as ws:
+        ws.send_json(msg("operation", 5, engine__rpm="fast"))
+        err = ws.receive_json()
+        assert err["msg_type"] == "error" and err["ref_msg_type"] == "operation" and err["sim_tick"] == 5
+        assert "engine.rpm" in err["detail"]
+
+        ws.send_json({"msg_type": "nonsense", "sim_tick": 6})
+        assert "unknown msg_type" in ws.receive_json()["detail"]
+        ws.send_text("this is not json")
+        assert ws.receive_json()["msg_type"] == "error"
+
+
+def test_close_worker_raises_a_critical_alert_on_the_cab_socket(client):
+    """Spec scenario 1 end to end: telemetry in over /ws/telemetry, assessment out over /ws/cab."""
+    with client.websocket_connect("/ws/cab/EXC001?lang=en") as cab, client.websocket_connect("/ws/telemetry") as tele:
+        tele.send_json(msg("shift_context", 0))
+        tele.send_json(msg("operation", 60))
+        first = cab.receive_json()                       # the first assessment: nobody near yet
+        assert first["msg_type"] == "assessment" and first["machine_id"] == "EXC001"
+        assert first["alerts"] == [] and first["lang"] == "en"
+        assert 0 <= first["readiness_score"] <= 100
+
+        tele.send_json(msg("proximity", 61, objects=[person(3.0)]))
+        alert = None
+        for _ in range(4):                               # pushed immediately, not on the 10 s timer
+            payload = cab.receive_json()
+            if payload["alerts"]:
+                alert = payload["alerts"][0]
+                break
+        assert alert is not None, "no alert reached the cab"
+        assert alert["alert_type"] == "proximity_person_blind_spot" and alert["severity"] == "critical"
+        assert alert["alert_id"].startswith("AL-") and alert["voice_text"]
+        assert "3.0" in alert["message"]
+
+        cab.send_json({"msg_type": "ack", "alert_id": alert["alert_id"]})
+
+    stored = [a for a in client.get("/api/alerts", params={"machine_id": "EXC001"}).json()
+              if a["alert_id"] == alert["alert_id"]]
+    assert stored and stored[0]["alert_type"] == "proximity_person_blind_spot"
+    incidents = client.get("/api/incidents", params={"machine_id": "EXC001"}).json()
+    auto = [i for i in incidents if i["source"] == "auto" and i["incident_type"] == "near_miss_person"]
+    assert auto, "a critical alert must create an incident"
+    assert client.get(f"/api/incidents/{auto[0]['id']}").json()["telemetry_window"]["before"]
+
+    tasks = client.get("/api/tasks/today", params={"operator_id": "OP1001"}).json()["tasks"]
+    assert tasks and tasks[0]["task_id"] == "T002"       # shift_context reached the state manager
+
+
+def test_cab_socket_speaks_hindi_when_asked(client):
+    with client.websocket_connect("/ws/cab/EXC001?lang=hi") as cab:
+        payload = cab.receive_json()                      # a screen joining late gets the latest, translated
+        assert payload["lang"] == "hi"
+        assert any(a["voice_text"] for a in payload["alerts"])
