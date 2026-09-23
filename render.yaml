@@ -1,0 +1,22 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Render serves this over HTTPS/WSS on *.onrender.com, which is what the Vercel
+# frontend needs -- a browser blocks plain ws:// from an https:// page.
+services:
+  - type: web
+    name: ironsense-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free          # free spins down after 15 min idle (~1 min cold start); "starter" removes that
+    region: singapore   # closest to India; must match wherever the demo runs
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      # Which origins may call the REST API. "*" keeps every teammate's localhost working;
+      # narrow it to the Vercel URL if this ever holds real data.
+      - key: IRONSENSE_CORS_ORIGINS
+        value: "*"
+      # Free plan has no disk, so this lives in the container and resets on restart.
+      # Incidents and training history are re-seeded from seed_data/ at startup.
+      - key: IRONSENSE_DB_PATH
+        value: /data/ironsense.db

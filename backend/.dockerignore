@@ -1,0 +1,15 @@
+tests/
+tools/
+training/
+logs/
+seed_data/*.zip
+*.db
+*.sqlite3
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest.ini
+.env
+.env.*
+!.env.example
+MODELS.md
