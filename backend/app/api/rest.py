@@ -6,10 +6,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.db.models import Incident, ReadinessSnapshot, TrainingCompletion
+from app.db.models import (Alert, AnomalyEvent, HourlySummary, Incident, ReadinessSnapshot,
+                           TaskRecord, TrainingCompletion)
+from app.db.writes import recent_history
 from app.models.anomaly import baseline_for
 from app.decision.recommender import recommend_training, _load_modules
 
@@ -85,13 +88,62 @@ def report_incident(payload: ManualIncident, db: Session = Depends(get_db)):
 
 @router.get("/digest/{operator_id}")
 def digest(operator_id: str, db: Session = Depends(get_db)):
+    """End-of-shift debrief: tasks done vs predicted, safety events, anomalies, one thing that
+    went well, one thing to improve, and a suggested lesson. Covers the operator's latest shift
+    day (sim time), falling back to their history when nothing live has been recorded yet."""
+    stamps = [db.query(func.max(col)).filter(op_col == operator_id).scalar()
+              for col, op_col in ((HourlySummary.timestamp, HourlySummary.operator_id),
+                                  (AnomalyEvent.timestamp, AnomalyEvent.operator_id),
+                                  (Alert.timestamp, Alert.operator_id),
+                                  (TaskRecord.completed_at, TaskRecord.operator_id))]
+    stamps = [t for t in stamps if t]
+    latest = (max(stamps),) if stamps else None
+    anomalies_q = db.query(AnomalyEvent).filter(AnomalyEvent.operator_id == operator_id)
+    alerts_q = db.query(Alert).filter(Alert.operator_id == operator_id)
+    tasks_q = db.query(TaskRecord).filter(TaskRecord.operator_id == operator_id)
+    hours_q = db.query(HourlySummary).filter(HourlySummary.operator_id == operator_id)
+    if latest:
+        day_start = latest[0].replace(hour=0, minute=0, second=0, microsecond=0)
+        anomalies_q = anomalies_q.filter(AnomalyEvent.timestamp >= day_start)
+        alerts_q = alerts_q.filter(Alert.timestamp >= day_start)
+        tasks_q = tasks_q.filter(TaskRecord.completed_at >= day_start)
+        hours_q = hours_q.filter(HourlySummary.timestamp >= day_start)
+    tasks = tasks_q.all()
+    anomalies = anomalies_q.all()
+    alerts = alerts_q.all()
+    hours = hours_q.all()
+
+    counts: dict[str, int] = {}
+    for a in anomalies:
+        counts[a.anomaly_type] = counts.get(a.anomaly_type, 0) + 1
+    top_issue = max(counts, key=counts.get) if counts else None
+    on_time = [t for t in tasks if t.actual_min is not None and t.predicted_p50_min is not None
+               and t.actual_min <= t.predicted_p50_min]
+    compliance = [h.seatbelt_compliance_pct for h in hours]
+    went_well = (f"{len(on_time)} of {len(tasks)} tasks finished within the predicted time" if tasks
+                 else "No safety-critical alerts" if not any(a.severity == "critical" for a in alerts)
+                 else "Shift completed")
+    if compliance and min(compliance) >= 95:
+        went_well = "Seatbelt on for the whole shift"
+    events, history = recent_history(operator_id)
+    recs = recommend_training([{"anomaly_type": top_issue}] if top_issue else [], [], history)
+
     incidents = db.query(Incident).filter(Incident.operator_id == operator_id).all()
-    profile = operator_profile(operator_id)
-    baseline = baseline_for(operator_id)
     return {
         "operator_id": operator_id,
-        "profile": profile,
-        "baseline": baseline,
+        "profile": operator_profile(operator_id),
+        "baseline": baseline_for(operator_id),
+        "tasks": [{"task_id": t.task_id, "task_type": t.task_type, "planned_min": t.planned_min,
+                   "predicted_p50_min": t.predicted_p50_min, "actual_min": t.actual_min} for t in tasks],
+        "alerts_by_severity": {sev: sum(1 for a in alerts if a.severity == sev)
+                               for sev in ("warning", "high", "critical")},
+        "anomaly_counts": counts,
+        "idle_min": round(sum(h.idling_time_min for h in hours)),
+        "fuel_used_l": round(sum(h.fuel_used_l for h in hours), 1),
+        "seatbelt_compliance_pct": round(sum(compliance) / len(compliance), 1) if compliance else None,
+        "went_well": went_well,
+        "to_improve": top_issue.replace("_", " ") if top_issue else None,
+        "suggested_training": recs[:1],
         "incident_count": len(incidents),
         "recent_incidents": [
             {"incident_type": i.incident_type, "severity": i.severity, "timestamp": i.timestamp.isoformat()}
@@ -102,13 +154,11 @@ def digest(operator_id: str, db: Session = Depends(get_db)):
 
 @router.get("/training/recommendations/{operator_id}")
 def training_recommendations(operator_id: str, db: Session = Depends(get_db)):
-    incidents = [
-        {"incident_type": i.incident_type, "timestamp": i.timestamp.isoformat()}
-        for i in db.query(Incident).filter(Incident.operator_id == operator_id).all()
-    ]
-    completed = db.query(TrainingCompletion).filter(TrainingCompletion.operator_id == operator_id).all()
-    history = [{"module_id": t.module_id, "completed_at": t.completed_at.isoformat()} for t in completed]
-    recs = recommend_training([], incidents, history)
+    events, history = recent_history(operator_id)   # incidents + live anomaly events
+    recent_anoms = (db.query(AnomalyEvent).filter(AnomalyEvent.operator_id == operator_id)
+                    .order_by(AnomalyEvent.timestamp.desc()).limit(20).all())
+    anomalies = [{"anomaly_type": a.anomaly_type} for a in recent_anoms]
+    recs = recommend_training(anomalies, events[:20], history)
     return {"operator_id": operator_id, "recommendations": recs, "modules": _load_modules()}
 
 

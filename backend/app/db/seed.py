@@ -5,12 +5,14 @@ Columns per datasets/README.md / the real CSVs in datasets/.
 from __future__ import annotations
 from pathlib import Path
 
+from app.paths import SEED_DIR
+
 import pandas as pd
 
 from app.db.models import Incident, TrainingCompletion
 from app.db.session import SessionLocal
 
-DATASETS_DIR = Path(__file__).resolve().parents[3] / "data" / "datasets"
+DATASETS_DIR = SEED_DIR
 
 
 def seed_incidents():

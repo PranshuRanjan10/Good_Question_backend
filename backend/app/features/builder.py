@@ -72,6 +72,8 @@ FAST_SWING_DPS = 55
 OVERLOAD_KG = 2000
 BUCKET_RAISED_M = 2.5
 MOVING_MODES = {"dig", "swing_loaded", "dump", "swing_empty", "travel", "grade"}
+TRUCK_TASKS = {"Earth Excavation", "Material Loading"}
+TRUCK_SEEN_S = 20           # a dump truck seen within this many seconds counts as present
 IDLE_MODES = {"idle", "break"}
 
 
@@ -126,6 +128,13 @@ class WindowBuffer:
         self.minutes_since_break = 0.0
         self._seat_since: datetime | None = None
         self._last_break_end: datetime | None = None
+        # Current unbroken idle stretch (engine idling / idle mode). A 5-minute window can't
+        # see a 40-minute idle on its own, so the rules read this instead.
+        self.idle_streak_min = 0.0
+        self._idle_since: datetime | None = None
+        self.on_break = False
+        self._break_by_event = False
+        self.size_factor = 1.0         # set by the state manager from the machine registry
 
     # ------------------------------------------------------------------ ingest
     def add(self, msg: dict) -> None:
@@ -155,29 +164,62 @@ class WindowBuffer:
 
         if mtype == "operation":
             self._track_seat(msg, ts)
+            self._track_idle(msg, ts)
 
     def _apply_event(self, msg: dict, ts: datetime) -> None:
         etype = msg.get("event_type")
-        if etype in ("break_start", "engine_stop", "operator_left_seat"):
+        if etype == "break_start":
+            self.on_break = True
+            self._break_by_event = True
+        if etype in ("break_start", "engine_stop"):
             self._seat_since = None
+            self.continuous_operation_min = 0.0
         if etype == "break_end":
+            self.on_break = False
+            self._break_by_event = False
             self._last_break_end = ts
             self.continuous_operation_min = 0.0
             self.minutes_since_break = 0.0
+        if etype == "engine_stop":
+            self._idle_since = None
+            self.idle_streak_min = 0.0
 
     def _track_seat(self, msg: dict, ts: datetime) -> None:
-        """Continuous operation: time seated with the engine on, reset by a break or 10 min out."""
+        """Continuous operation: time seated with the engine on. Like the training data, it is
+        reset by a declared break or by 10+ minutes out of the seat -- not by a short step-out."""
         seated = _dig(msg, "cab", "seat_occupied", default=False)
         engine_on = _dig(msg, "engine", "state", default="off") != "off"
         if seated and engine_on:
+            self._out_since = None
             if self._seat_since is None:
                 self._seat_since = ts
             self.continuous_operation_min = (ts - self._seat_since).total_seconds() / 60
         else:
-            self._seat_since = None
+            out_since = getattr(self, "_out_since", None) or ts
+            self._out_since = out_since
+            if (ts - out_since) >= timedelta(minutes=10):
+                self._seat_since = None
+                self.continuous_operation_min = 0.0
         base = self._last_break_end or _ts(_dig(self.context, "operator", "shift_start"))
         if base:
             self.minutes_since_break = max(0.0, (ts - base).total_seconds() / 60)
+
+    def _track_idle(self, msg: dict, ts: datetime) -> None:
+        state = _dig(msg, "engine", "state", default="off")
+        mode = _dig(msg, "implement", "work_mode", default="idle")
+        # A break is declared by break_start/break_end events, or by work_mode "break" -- accept
+        # either, so a sim that forgets the events doesn't turn every break into an alert.
+        if mode == "break":
+            self.on_break = True
+        elif self.on_break and not self._break_by_event:
+            self.on_break = False
+        if state != "off" and (state == "idle" or mode in IDLE_MODES):
+            if self._idle_since is None:
+                self._idle_since = ts
+            self.idle_streak_min = (ts - self._idle_since).total_seconds() / 60
+        else:
+            self._idle_since = None
+            self.idle_streak_min = 0.0
 
     # ------------------------------------------------------------------ query
     def in_window(self, now: datetime | None = None) -> list[dict]:
@@ -189,9 +231,14 @@ class WindowBuffer:
 
     def feature_row(self, now: datetime | None = None) -> dict:
         """One row, exactly FEATURE_COLUMNS. Pure: does not mutate the buffer."""
-        return build_feature_row(self.in_window(now), self.context,
-                                 now or self.last_ts or datetime.now(timezone.utc),
-                                 self.continuous_operation_min, self.environment)
+        end = now or self.last_ts or datetime.now(timezone.utc)
+        # With the engine off, status comes only every 5 min, so a 5-min window may hold a single
+        # reading. The last status before the window anchors the engine-off fuel-drop check.
+        anchor = next((m for ts, m in reversed(self.messages)
+                       if ts < end - self.window and m.get("msg_type") == "status"), None)
+        return build_feature_row(self.in_window(now), self.context, end,
+                                 self.continuous_operation_min, self.environment, self.size_factor,
+                                 anchor_status=anchor)
 
     def identity(self) -> dict:
         """The id columns the feature row deliberately omits, for logging and DB writes."""
@@ -209,7 +256,8 @@ class WindowBuffer:
 
 def build_feature_row(messages: list[dict], context: dict, now: datetime,
                       continuous_operation_min: float = 0.0,
-                      latest_env: dict | None = None) -> dict:
+                      latest_env: dict | None = None, size_factor: float = 1.0,
+                      anchor_status: dict | None = None) -> dict:
     """
     Aggregate a window of raw messages into the training schema.
 
@@ -218,6 +266,7 @@ def build_feature_row(messages: list[dict], context: dict, now: datetime,
     live row comparable to a trained one.
     """
     ops = [m for m in messages if m.get("msg_type") == "operation"]
+    task_types = {t.get("task_id"): t.get("task_type") for t in (context or {}).get("daily_tasks") or []}
     batches = [m for m in messages if m.get("msg_type") == "motion_batch"]
     statuses = [m for m in messages if m.get("msg_type") == "status"]
     proximity = [m for m in messages if m.get("msg_type") == "proximity"]
@@ -264,13 +313,6 @@ def build_feature_row(messages: list[dict], context: dict, now: datetime,
                 dropouts += per_op_min          # missing sensor value on a running machine
             elif rpm > OVER_REV_RPM:
                 over_rev += per_op_min
-        else:
-            # Fuel disappearing while the engine is off is the theft signal.
-            lvl = _num(_dig(m, "engine", "fuel_level_pct"))
-            if lvl is not None:
-                if last_off_level is not None and lvl < last_off_level:
-                    fuel_drop_off += last_off_level - lvl
-                last_off_level = lvl
 
         if rpm is not None:
             rpms.append(rpm)
@@ -281,7 +323,28 @@ def build_feature_row(messages: list[dict], context: dict, now: datetime,
         if rate is not None:
             fuel_rates.append(rate)
         speeds.append(speed)
-        task_type = m.get("task_type") or task_type
+        task_type = m.get("task_type") or task_types.get(m.get("task_id")) or task_type
+
+    # ---- fuel theft: fuel falling between status readings while the engine is off.
+    # With the engine off the sim stops sending operation messages and slows status to 5 min,
+    # so engine state is tracked from ops + engine events in time order. Only falls count:
+    # a rise is refuelling, not negative theft.
+    engine_off = not ops or _dig(ops[0], "engine", "state", default="off") == "off"
+    if anchor_status is not None and engine_off:
+        last_off_level = _num(_dig(anchor_status, "engine", "fuel_level_pct"))
+    for m in sorted(messages, key=lambda x: _ts(x.get("timestamp")) or now):
+        mt = m.get("msg_type")
+        if mt == "operation":
+            engine_off = _dig(m, "engine", "state", default="off") == "off"
+        elif mt == "event" and m.get("event_type") in ("engine_start", "engine_stop"):
+            engine_off = m.get("event_type") == "engine_stop"
+        elif mt == "status":
+            lvl = _num(_dig(m, "engine", "fuel_level_pct"))
+            if lvl is None:
+                continue
+            if engine_off and last_off_level is not None and lvl < last_off_level:
+                fuel_drop_off += last_off_level - lvl
+            last_off_level = lvl if engine_off else None
 
     # ---- status: cumulative counters and temperatures
     coolant = [_num(_dig(m, "engine", "coolant_temp_c")) for m in statuses]
@@ -302,7 +365,8 @@ def build_feature_row(messages: list[dict], context: dict, now: datetime,
     for m in statuses:
         if _dig(m, "diagnostics", "active_fault_codes") is None:
             dropouts += 1
-    task_type = next((_dig(m, "task", "task_id") and task_type for m in statuses), task_type)
+    for m in statuses:
+        task_type = task_type or task_types.get(_dig(m, "task", "task_id"))
 
     # ---- motion batches: attitude, swing, payload
     pitch = roll = swing_p95 = payload_max = 0.0
@@ -325,7 +389,7 @@ def build_feature_row(messages: list[dict], context: dict, now: datetime,
                 fast_swing += 1
             pl = val("bucket_payload_kg")
             payload_max = max(payload_max, pl)
-            if pl > OVERLOAD_KG:
+            if pl > OVERLOAD_KG * size_factor:     # training: payload > 2000 kg x size_factor
                 overload += 1
             if val("bucket_height_m") > BUCKET_RAISED_M and max(speeds or [0]) > 0.5:
                 bucket_raised_s += interval
@@ -352,8 +416,22 @@ def build_feature_row(messages: list[dict], context: dict, now: datetime,
             if 135 <= bearing <= 225:       # behind the machine
                 blind_spot += 1 / 60
 
+    # ---- truck wait: idle minutes during a truck-served task with no dump truck in range.
+    # Proximity is only sent while something is within range, so no message = no truck.
+    truck_seen = sorted(_ts(m.get("timestamp")) for m in proximity
+                        if any(o.get("role") == "dump_truck" for o in m.get("objects") or []))
+    truck_wait = 0.0
+    if task_type in TRUCK_TASKS:
+        for m in ops:
+            state = _dig(m, "engine", "state", default="off")
+            mode = _dig(m, "implement", "work_mode", default="idle")
+            if state == "off" or not (state == "idle" or mode in IDLE_MODES):
+                continue
+            t = _ts(m.get("timestamp"))
+            if t and not any(abs((t - s).total_seconds()) <= TRUCK_SEEN_S for s in truck_seen if s):
+                truck_wait += per_op_min
+
     # ---- events inside the window
-    truck_wait = sum(1 for m in events if m.get("event_type") == "truck_wait_start")
     harsh = sum(1 for m in events if m.get("event_type") == "harsh_brake")
 
     # ---- shift schedule
@@ -407,7 +485,7 @@ def build_feature_row(messages: list[dict], context: dict, now: datetime,
         "min_person_distance_m": round(min_dist, 1),
         "red_zone_min": round(red_zone, 2),
         "blind_spot_min": round(blind_spot, 2),
-        "truck_wait_min": truck_wait,
+        "truck_wait_min": round(truck_wait, 2),
         "continuous_operation_min": round(continuous_operation_min, 1),
         "within_scheduled_hours": within_hours,
         "sensor_dropout_min": round(dropouts, 2),

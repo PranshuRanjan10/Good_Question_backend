@@ -182,16 +182,24 @@ class Replayer:
         pitch, roll = jnum(row.pitch_max_deg, 1) or 0.0, jnum(row.roll_max_deg, 1) or 0.0
         swing = jnum(row.swing_rate_p95_dps, 1) or 0.0
         payload = jnum(row.bucket_payload_max_kg, 0) or 0.0
+        # Only a digging cycle lifts the bucket (samples 3-5 = swing loaded). Travelling carries
+        # it low unless the history recorded bucket-raised travel for this minute.
+        digging = row.mode == "work"
+        raised_s = int(min(10, round((jnum(row.bucket_raised_travel_s, 1) or 0) / 6)))
         samples, angle = [], 0.0
         for i in range(10):
+            if digging:
+                height = 1.2 + (2.0 if i in (3, 4, 5) else 0.0)
+            else:
+                height = 3.0 if (row.mode == "travel" and i < raised_s) else 0.8
             angle = (angle + swing) % 360
             samples.append([
                 round(pitch + self.rng.uniform(-0.3, 0.3), 1),
                 round(roll + self.rng.uniform(-0.2, 0.2), 1),
                 round(jnum(row.longitudinal_accel_min_ms2, 2) or 0.0, 2) if i == 5 else 0.0,
                 round(angle, 1), round(swing, 1),
-                round(1.2 + (2.0 if i in (3, 4, 5) else 0.0), 1),
-                payload if i < 6 else 0.0,
+                round(height, 1),
+                payload if (digging and i < 6) else 0.0,
             ])
         msg = self._head("motion_batch", row.timestamp)
         msg.update({"start_timestamp": iso(row.timestamp), "sample_interval_s": 1,
@@ -266,6 +274,10 @@ class Replayer:
             if jbool(p.seat_occupied) != jbool(row.seat_occupied):
                 out.append(self.event(ts, "operator_returned" if row.seat_occupied
                                       else "operator_left_seat", {}, op))
+            if (p.mode == "break") != (row.mode == "break"):   # spec section 6: break_start / break_end
+                out.append(self.event(ts, "break_start" if row.mode == "break" else "break_end", {}, op))
+            if (p.mode == "refuel") != (row.mode == "refuel"):
+                out.append(self.event(ts, "refuel_start" if row.mode == "refuel" else "refuel_end", {}, op))
             if p.weather != row.weather:
                 out.append(self.event(ts, "weather_change", {"from": p.weather, "to": row.weather}, op))
             if str(p.task_id) != str(row.task_id):

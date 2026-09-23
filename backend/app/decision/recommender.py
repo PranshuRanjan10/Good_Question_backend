@@ -6,10 +6,12 @@ No ML here — a lookup over `triggers`, plus a repeat-offense escalation rule.
 from __future__ import annotations
 import json
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-MODULES_PATH = Path(__file__).resolve().parents[3] / "data" / "datasets" / "training_modules.json"
+from app.paths import SEED_DIR
+
+MODULES_PATH = SEED_DIR / "training_modules.json"
 REPEAT_WINDOW_DAYS = 7
 REPEAT_THRESHOLD = 3
 INSTRUCTOR_MODULE_ID = "TRN-INSTR-01"
@@ -61,20 +63,27 @@ def recommend_training(anomalies: list[dict], incidents: list[dict], history: li
     return recs
 
 
+def _naive_utc(ts) -> datetime | None:
+    try:
+        dt = ts if isinstance(ts, datetime) else datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt.astimezone(timezone.utc).replace(tzinfo=None) if dt.tzinfo else dt
+
+
 def _check_repeat_unsafe_types(incidents: list[dict], history: list[dict]) -> dict | None:
-    cutoff = datetime.utcnow() - timedelta(days=REPEAT_WINDOW_DAYS)
-    recent_types = []
+    # The site runs on sim time (2025) while the server clock says today, so "the last 7 days"
+    # is measured back from the newest record, not from datetime.utcnow().
+    dated = []
     for incident in incidents:
-        ts = incident.get("timestamp") or incident.get("occurred_at")
+        ts = _naive_utc(incident.get("timestamp") or incident.get("occurred_at"))
         incident_type = incident.get("incident_type") or incident.get("type")
-        if not ts or not incident_type:
-            continue
-        try:
-            ts_dt = datetime.fromisoformat(str(ts))
-        except ValueError:
-            continue
-        if ts_dt >= cutoff:
-            recent_types.append(incident_type)
+        if ts and incident_type:
+            dated.append((ts, incident_type))
+    if not dated:
+        return None
+    cutoff = max(ts for ts, _ in dated) - timedelta(days=REPEAT_WINDOW_DAYS)
+    recent_types = [t for ts, t in dated if ts >= cutoff]
 
     counts = Counter(recent_types)
     for incident_type, count in counts.items():

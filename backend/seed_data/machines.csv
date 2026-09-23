@@ -1,0 +1,9 @@
+machine_id,model,machine_type,machine_age_yrs,size_factor,fuel_tank_l,primary_operator_id
+EXC001,CAT 320,excavator,4,1.0,345,OP1001
+EXC002,CAT 320,excavator,2,1.0,345,OP1002
+EXC003,CAT 323,excavator,6,1.1,345,OP1003
+EXC004,CAT 330,excavator,9,1.4,475,OP1004
+EXC005,CAT 336,excavator,1,1.55,600,OP1005
+EXC006,CAT 320,excavator,5,1.0,345,OP1008
+WL001,CAT 950,wheel_loader,5,1.0,370,OP1006
+BHL001,CAT 432,backhoe_loader,7,0.55,160,OP1007

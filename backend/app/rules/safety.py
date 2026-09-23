@@ -1,7 +1,12 @@
 """Fast-path safety rules -> `alerts` in the `assessment` message (spec section 10).
-Runs off the live feature row + machine state, separate from the offline-trained
-anomaly model. Zone widening mirrors app/models/readiness.py:danger_radius_m so
-the Readiness Score and the cab alerts always agree on where "danger" is.
+
+These read the *latest* raw readings (current proximity scan, last few seconds of motion),
+not the 5-minute feature row: a worker behind the machine or a tilt past 15 degrees has to
+show now and clear when it ends. Zone widening mirrors app/models/readiness.py:danger_radius_m
+so the Readiness Score and the cab alerts always agree on where "danger" is.
+
+Every finding carries a private `_key` (alert type + object) that the decision layer uses to
+keep one stable alert_id while the condition lasts. It is stripped before sending.
 """
 
 from __future__ import annotations
@@ -9,6 +14,15 @@ from app.models.readiness import danger_radius_m
 
 CAUTION_MARGIN_M = 7.0  # spec sample: rain -> danger 8, caution 15
 BLIND_SPOT_BEARING = (135.0, 225.0)
+TILT_LIMIT_DEG = 15.0
+LIGHTNING_STOP_KM = 10.0
+
+
+def _alert(alert_type: str, severity: str, message: str, action: str,
+           note: str | None = None, key: str | None = None) -> dict:
+    return {"alert_type": alert_type, "severity": severity, "message": message,
+            "recommended_action": action, "adjusted_threshold_note": note,
+            "_key": key or alert_type}
 
 
 def zone_radii(row: dict) -> dict:
@@ -27,101 +41,121 @@ def _zone_reason(row: dict) -> str | None:
     return ", ".join(reasons) or None
 
 
-def proximity_view(machine_state) -> list[dict]:
+def _in_blind_spot(bearing: float) -> bool:
+    return BLIND_SPOT_BEARING[0] <= bearing <= BLIND_SPOT_BEARING[1]
+
+
+def proximity_view(machine_state, row: dict | None = None) -> list[dict]:
     """The `proximity_view` block of `assessment`: every currently-tracked object
     with the zone/blind-spot flags the backend (not the sim) computes."""
-    if not machine_state.latest_proximity:
+    scan = machine_state.fresh_proximity()
+    if not scan:
         return []
-    row = machine_state.to_feature_row()
+    row = row or machine_state.to_feature_row()
     danger = danger_radius_m(row)
     caution = danger + CAUTION_MARGIN_M
     out = []
-    for obj in machine_state.latest_proximity.objects:
-        if obj.distance_m < danger:
-            zone = "red"
-        elif obj.distance_m < caution:
-            zone = "amber"
-        else:
-            zone = "green"
-        in_blind_spot = BLIND_SPOT_BEARING[0] <= obj.bearing_deg <= BLIND_SPOT_BEARING[1]
+    for obj in scan.objects:
+        zone = "red" if obj.distance_m < danger else "amber" if obj.distance_m < caution else "green"
         out.append({
             "object_id": obj.object_id, "object_type": obj.object_type,
             "distance_m": obj.distance_m, "bearing_deg": obj.bearing_deg,
-            "zone": zone, "in_blind_spot": in_blind_spot,
+            "zone": zone, "in_blind_spot": _in_blind_spot(obj.bearing_deg),
         })
     return out
 
 
-def check_proximity_alerts(machine_state) -> list[dict]:
-    if not machine_state.latest_proximity:
+def check_proximity_alerts(machine_state, row: dict) -> list[dict]:
+    scan = machine_state.fresh_proximity()
+    if not scan:
         return []
-    row = machine_state.to_feature_row()
     danger = danger_radius_m(row)
+    reason = _zone_reason(row)
+    note = f"Danger zone widened to {danger:.0f} m ({reason})" if reason else None
     findings = []
-    for obj in machine_state.latest_proximity.objects:
+    for obj in scan.objects:
         if obj.object_type != "person" or obj.distance_m >= danger:
             continue
-        blind = BLIND_SPOT_BEARING[0] <= obj.bearing_deg <= BLIND_SPOT_BEARING[1]
-        findings.append({
-            "alert_type": "proximity_person_blind_spot" if blind else "proximity_person_danger",
-            "severity": "critical",
-            "message": f"Worker {obj.distance_m:.1f} m away" + (", in blind spot" if blind else ""),
-            "recommended_action": "Stop swing and sound horn" if blind else "Stop and check surroundings",
-            "adjusted_threshold_note": _zone_reason(row) and f"Danger zone widened to {danger:.0f} m ({_zone_reason(row)})",
-        })
+        blind = _in_blind_spot(obj.bearing_deg)
+        alert_type = "proximity_person_blind_spot" if blind else "proximity_person_danger"
+        findings.append(_alert(
+            alert_type, "critical",
+            f"Worker {obj.distance_m:.1f} m " + ("behind you, in blind spot" if blind else "away, inside danger zone"),
+            "Stop swing and sound horn" if blind else "Stop and check surroundings",
+            note, key=f"proximity:{obj.object_id}"))
     return findings
 
 
 def check_seatbelt(machine_state) -> dict | None:
-    """Escalation ladder: warning (0-20s unbelted) -> alarm (20-60s) -> logged_violation (>60s)."""
+    """Escalation ladder while working or travelling unbelted:
+    warning (0-20 s) -> high alarm (20-60 s) -> critical logged violation (> 60 s).
+    'Working' includes digging in place, not only driving."""
     op = machine_state.latest_operation
-    if op is None or op.cab.seatbelt_fastened is not False:
+    if op is None or op.cab.seatbelt_fastened is not False or not op.cab.seat_occupied:
         return None
-    if (op.motion.ground_speed_kmh or 0) <= 0.5:
+    if not machine_state.is_moving():
         return None
-    elapsed_min = 0.0
+    since = op.timestamp
     for ts, tick in reversed(machine_state.operation_ticks):
         if tick.cab.seatbelt_fastened is False:
-            elapsed_min = (op.timestamp - ts).total_seconds() / 60.0
+            since = ts
         else:
             break
-    if elapsed_min > 1.0:
-        return {"alert_type": "seatbelt_off_moving", "severity": "critical",
-                "message": "Seatbelt off while moving - logged as a violation",
-                "recommended_action": "Stop and fasten seatbelt", "adjusted_threshold_note": None}
-    if elapsed_min > 20.0 / 60.0:
-        return {"alert_type": "seatbelt_off_moving", "severity": "high",
-                "message": "Seatbelt still off while moving",
-                "recommended_action": "Fasten seatbelt now", "adjusted_threshold_note": None}
-    return {"alert_type": "seatbelt_off_moving", "severity": "warning",
-            "message": "Seatbelt off while moving",
-            "recommended_action": "Fasten seatbelt", "adjusted_threshold_note": None}
+    elapsed_s = (op.timestamp - since).total_seconds()
+    if elapsed_s > 60:
+        return _alert("seatbelt_off_moving", "critical", "Seatbelt off while operating - logged as a violation",
+                      "Stop and fasten seatbelt")
+    if elapsed_s > 20:
+        return _alert("seatbelt_off_moving", "high", "Seatbelt still off while operating", "Fasten seatbelt now")
+    return _alert("seatbelt_off_moving", "warning", "Seatbelt off while operating", "Fasten seatbelt")
 
 
-def check_tilt(row: dict) -> dict | None:
-    pitch, roll = abs(row.get("pitch_max_deg", 0) or 0), abs(row.get("roll_max_deg", 0) or 0)
-    if pitch > 15 or roll > 15:
-        return {"alert_type": "tilt_warning", "severity": "critical",
-                "message": f"Pitch/roll {max(pitch, roll):.0f} deg exceeds 15 deg slope limit",
-                "recommended_action": "Reposition to level ground", "adjusted_threshold_note": None}
+def check_out_of_cab(machine_state) -> dict | None:
+    """Scenario 3: operator left the seat with the engine running (not on a declared break)."""
+    op = machine_state.latest_operation
+    if op is None or not machine_state.engine_running() or op.cab.seat_occupied is not False:
+        return None
+    if machine_state.on_break:
+        return None
+    return _alert("operator_out_of_cab", "high", "Operator out of cab with engine running",
+                  "Return to cab or shut down the engine")
+
+
+def check_tilt(machine_state) -> dict | None:
+    recent = machine_state.recent_motion(15)
+    if not recent:
+        return None
+    pitch = max(abs(r.get("pitch_deg") or 0) for r in recent)
+    roll = max(abs(r.get("roll_deg") or 0) for r in recent)
+    if max(pitch, roll) > TILT_LIMIT_DEG:
+        return _alert("tilt_warning", "critical",
+                      f"Pitch/roll {max(pitch, roll):.0f} deg exceeds {TILT_LIMIT_DEG:.0f} deg slope limit",
+                      "Reposition to level ground")
     return None
 
 
-def check_lightning(row: dict) -> dict | None:
+def check_lightning(row: dict, machine_state=None) -> dict | None:
+    """From the environment reading, or a lightning_nearby event in the last 10 sim minutes
+    (the event arrives immediately; the environment message may be up to 15 min away)."""
     dist = row.get("lightning_distance_km")
-    if dist is not None and 0 < dist < 10:
-        return {"alert_type": "lightning_nearby", "severity": "critical",
-                "message": f"Lightning {dist:.0f} km away: stop work",
-                "recommended_action": "Stop work and move to shelter", "adjusted_threshold_note": None}
+    if machine_state is not None:
+        now = machine_state.sim_now()
+        for ts, e in reversed(machine_state.events):
+            if e.event_type == "lightning_nearby" and (now - ts).total_seconds() <= 600:
+                ev = (e.details or {}).get("distance_km")
+                if ev is not None and (dist is None or ev < dist):
+                    dist = float(ev)
+                break
+    if dist is not None and 0 < dist < LIGHTNING_STOP_KM:
+        return _alert("lightning_nearby", "critical", f"Lightning {dist:.0f} km away: stop work",
+                      "Stop work and move to shelter")
     return None
 
 
-def check_refuel_engine_on(machine_state) -> dict | None:
-    row = machine_state.to_feature_row()
+def check_refuel_engine_on(row: dict) -> dict | None:
     if row.get("engine_on") and row.get("fuel_rising"):
-        return {"alert_type": "refuel_engine_on", "severity": "critical",
-                "message": "Fuel level rising while engine is running",
-                "recommended_action": "Stop engine before refuelling", "adjusted_threshold_note": None}
+        return _alert("refuel_engine_on", "critical", "Fuel level rising while engine is running",
+                      "Stop engine before refuelling")
     return None
 
 
@@ -130,27 +164,26 @@ def check_geofence(machine_state) -> dict | None:
     if not machine_state.shift_context:
         return None
     no_go_ids = {z.zone_id for z in machine_state.shift_context.zones if z.zone_type == "no_go_zone"}
-    entered, exited = None, None
+    entered, exited, zone = None, None, None
     for ts, e in machine_state.events:
-        zone_id = e.details.get("zone_id")
+        zone_id = (e.details or {}).get("zone_id")
         if zone_id not in no_go_ids:
             continue
         if e.event_type == "geofence_enter":
-            entered = ts
+            entered, zone = ts, zone_id
         elif e.event_type == "geofence_exit":
             exited = ts
     if entered and (exited is None or exited < entered):
-        return {"alert_type": "geofence_violation", "severity": "high",
-                "message": "Machine inside a no-go zone",
-                "recommended_action": "Move out of the restricted zone", "adjusted_threshold_note": None}
+        return _alert("geofence_violation", "high", f"Machine inside no-go zone {zone}",
+                      "Move out of the restricted zone", key=f"geofence:{zone}")
     return None
 
 
-def run_safety_checks(machine_state) -> list[dict]:
-    row = machine_state.to_feature_row()
-    findings = check_proximity_alerts(machine_state)
-    for check in (check_seatbelt(machine_state), check_tilt(row), check_lightning(row),
-                  check_refuel_engine_on(machine_state), check_geofence(machine_state)):
+def run_safety_checks(machine_state, row: dict | None = None) -> list[dict]:
+    row = row or machine_state.to_feature_row()
+    findings = check_proximity_alerts(machine_state, row)
+    for check in (check_seatbelt(machine_state), check_out_of_cab(machine_state), check_tilt(machine_state),
+                  check_lightning(row, machine_state), check_refuel_engine_on(row), check_geofence(machine_state)):
         if check:
             findings.append(check)
     return findings

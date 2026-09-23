@@ -16,7 +16,7 @@ from app.state.manager import StateManager
 
 router = APIRouter()
 
-LOG_DIR = Path(__file__).resolve().parents[2] / "logs" / "raw"
+from app.paths import LOG_DIR
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -40,7 +40,14 @@ async def telemetry_ws(websocket: WebSocket):
     state: StateManager = websocket.app.state.state_manager
     try:
         while True:
-            raw = await websocket.receive_json()
+            try:
+                raw = await websocket.receive_json()
+            except ValueError:
+                await websocket.send_json(_error_reply(None, None, "message is not valid JSON"))
+                continue
+            if not isinstance(raw, dict):
+                await websocket.send_json(_error_reply(None, None, "message must be a JSON object"))
+                continue
             _append_raw(raw)
 
             ref_type = raw.get("msg_type")
@@ -56,6 +63,7 @@ async def telemetry_ws(websocket: WebSocket):
                 await websocket.send_json(_error_reply(ref_type, sim_tick, f"{field}: {first['msg']}"))
                 continue
 
-            await state.ingest(msg)
+            machine_state = await state.ingest(msg, raw)
+            await websocket.app.state.hub.on_ingest(machine_state, msg.msg_type)
     except WebSocketDisconnect:
         pass

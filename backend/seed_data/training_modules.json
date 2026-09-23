@@ -1,0 +1,140 @@
+[
+  {
+    "module_id": "TRN-IDLE-01",
+    "title": "Cutting idle time",
+    "format": "micro_lesson",
+    "duration_min": 2,
+    "triggers": [
+      "excessive_idling"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-BELT-01",
+    "title": "Why the belt stays on",
+    "format": "micro_lesson",
+    "duration_min": 2,
+    "triggers": [
+      "seatbelt_off_while_moving"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-CAB-01",
+    "title": "Leaving the cab safely",
+    "format": "micro_lesson",
+    "duration_min": 3,
+    "triggers": [
+      "operator_out_of_seat",
+      "unsafe_refuelling"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-SWING-01",
+    "title": "Smooth swing control",
+    "format": "simulation",
+    "duration_min": 5,
+    "triggers": [
+      "fast_swing",
+      "harsh_operation"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-TRAVEL-01",
+    "title": "Safe travel on site",
+    "format": "micro_lesson",
+    "duration_min": 3,
+    "triggers": [
+      "bucket_raised_travel",
+      "overspeed"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-SLOPE-01",
+    "title": "Working on slopes",
+    "format": "simulation",
+    "duration_min": 6,
+    "triggers": [
+      "slope_exceeded"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-LOAD-01",
+    "title": "Bucket fill and load limits",
+    "format": "video",
+    "duration_min": 4,
+    "triggers": [
+      "overload",
+      "low_productivity"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-ENGINE-01",
+    "title": "Engine care: RPM and temperatures",
+    "format": "video",
+    "duration_min": 4,
+    "triggers": [
+      "over_rev",
+      "overheating"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-FATIGUE-01",
+    "title": "Managing fatigue and breaks",
+    "format": "micro_lesson",
+    "duration_min": 3,
+    "triggers": [
+      "fatigue"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-PROX-01",
+    "title": "Blind spots and the danger zone",
+    "format": "simulation",
+    "duration_min": 6,
+    "triggers": [
+      "near_miss_person",
+      "person_struck"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-SEC-01",
+    "title": "Machine security and access",
+    "format": "micro_lesson",
+    "duration_min": 2,
+    "triggers": [
+      "fuel_theft",
+      "after_hours_use",
+      "unauthorized_operator"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-WX-01",
+    "title": "Working in rain, fog and dust",
+    "format": "video",
+    "duration_min": 5,
+    "triggers": [
+      "bad_weather"
+    ],
+    "quiz_questions": 3
+  },
+  {
+    "module_id": "TRN-INSTR-01",
+    "title": "Instructor session: operating review",
+    "format": "instructor_booking",
+    "duration_min": 60,
+    "triggers": [
+      "repeated_unsafe"
+    ],
+    "quiz_questions": 0
+  }
+]

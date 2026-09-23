@@ -1,13 +1,22 @@
-"""Decision layer: builds the `assessment` message pushed to the cab every
-10s (and immediately on a new alert), exactly matching
+"""Decision layer: builds the `assessment` message pushed to the cab, exactly matching
 frontend_handoff_spec_v1.md section 10.
 
-Calls Pranshu's compute_readiness/predict_task/operator_profile directly -
-these are real, trained artifacts, not stubs.
+Calls Pranshu's compute_readiness/predict_task directly - real, trained artifacts, not stubs.
+
+Alert identity (spec: "alerts with the same alert_id are updates of the same alert"):
+every safety finding has a key (type + object). The first time a key appears it gets a new
+alert_id; while the condition lasts, every assessment repeats it with the SAME id (severity may
+escalate); when the condition clears the key is dropped, and a later recurrence is a new alert.
+Anomalies stay in the message while they last too - nothing is hidden by a cooldown - but only
+their first appearance counts as "new" for logging and training.
+
+This object is shared by every cab connection and is only called from the hub, so there is one
+source of truth per machine instead of each socket keeping its own cooldowns.
 """
 
 from __future__ import annotations
-from datetime import datetime, UTC
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from typing import Callable
 
 from app.models.anomaly import detect_anomalies
@@ -15,29 +24,74 @@ from app.models.readiness import compute_readiness
 from app.decision.recommender import recommend_training
 from app.rules.safety import zone_radii, proximity_view, run_safety_checks
 
-COOLDOWN_SECONDS = 60
+SEVERITY_RANK = {"info": 0, "warning": 1, "high": 2, "critical": 3}
+ANOMALY_NEW_AFTER = timedelta(minutes=10)   # gap after which a recurring anomaly counts as new
+
+
+@dataclass
+class Assessment:
+    payload: dict
+    new_alerts: list[dict] = field(default_factory=list)      # first seen, or escalated
+    new_anomalies: list[dict] = field(default_factory=list)
 
 
 class DecisionLayer:
     def __init__(self, predict_task: Callable | None = None):
-        self._predict_task = predict_task  # optional override for tests
-        self._last_alert_at: dict[str, datetime] = {}
+        self._predict_task = predict_task
+        self._active_alerts: dict[str, dict[str, dict]] = {}     # machine -> key -> {alert_id, severity}
+        self._anomaly_seen: dict[str, dict[str, datetime]] = {}  # machine -> type -> last seen
         self._alert_seq = 0
+        self.last_prediction: dict[str, dict] = {}              # task_id -> latest task_prediction
 
     def _next_alert_id(self) -> str:
         self._alert_seq += 1
         return f"AL-{self._alert_seq:04d}"
 
-    def _is_in_cooldown(self, key: str, now: datetime) -> bool:
-        last = self._last_alert_at.get(key)
-        return last is not None and (now - last).total_seconds() < COOLDOWN_SECONDS
+    # ------------------------------------------------------------------ alerts
+    def has_new_alerts(self, machine_state, row: dict | None = None) -> bool:
+        """Cheap check for the fast path: would this state raise a new or escalated alert?
+        Does not change any state."""
+        active = self._active_alerts.get(machine_state.machine_id, {})
+        for a in run_safety_checks(machine_state, row):
+            cur = active.get(a["_key"])
+            if cur is None or SEVERITY_RANK[a["severity"]] > SEVERITY_RANK[cur["severity"]]:
+                return True
+        return False
 
-    def _mark_alerted(self, key: str, now: datetime) -> None:
-        self._last_alert_at[key] = now
+    def _resolve_alerts(self, machine_id: str, raw: list[dict]) -> tuple[list[dict], list[dict]]:
+        active = self._active_alerts.setdefault(machine_id, {})
+        alerts, new = [], []
+        seen = set()
+        for a in raw:
+            key = a.pop("_key")
+            seen.add(key)
+            cur = active.get(key)
+            if cur is None:
+                cur = active[key] = {"alert_id": self._next_alert_id(), "severity": a["severity"]}
+                new.append({"alert_id": cur["alert_id"], **a})
+            elif SEVERITY_RANK[a["severity"]] > SEVERITY_RANK[cur["severity"]]:
+                cur["severity"] = a["severity"]
+                new.append({"alert_id": cur["alert_id"], **a})
+            alerts.append({"alert_id": cur["alert_id"], **a})
+        for key in list(active):
+            if key not in seen:
+                del active[key]                     # condition cleared
+        return alerts, new
 
-    def _derive_task_inputs(self, machine_state, row: dict) -> tuple[dict, dict, dict, dict] | None:
-        """Builds predict_task()'s (task, env, operator, machine) dicts straight
-        from live state, so the cab WS doesn't have to assemble them by hand."""
+    def _resolve_anomalies(self, machine_id: str, anomalies: list[dict], now: datetime) -> list[dict]:
+        seen = self._anomaly_seen.setdefault(machine_id, {})
+        new = []
+        for a in anomalies:
+            last = seen.get(a["anomaly_type"])
+            if last is None or now - last > ANOMALY_NEW_AFTER:
+                new.append(a)
+            seen[a["anomaly_type"]] = now
+        return new
+
+    # ------------------------------------------------------------------ task prediction
+    def _task_prediction(self, machine_state, now: datetime) -> dict | None:
+        if not self._predict_task:
+            return None
         sc = machine_state.shift_context
         op = machine_state.latest_operation
         if sc is None or op is None or op.task_id is None:
@@ -66,62 +120,44 @@ class DecisionLayer:
         machine = {"machine_id": sc.machine.machine_id, "machine_age_yrs": sc.machine.machine_age_yrs}
 
         status = machine_state.latest_status
-        task_status = status.task if (status and status.task) else None
-        elapsed_min = None
-        progress_pct = task_status.progress_pct if task_status else None
-        if sc.operator.shift_start and task_def.scheduled_start:
-            pass  # elapsed_min needs task_start event timing; left None until wired to events
+        progress_pct = None
+        if status and status.task and status.task.task_id == task_def.task_id:
+            progress_pct = status.task.progress_pct
+        elapsed_min = machine_state.task_elapsed_min(task_def.task_id, now)
+        pred = self._predict_task(task, env, operator, machine, elapsed_min=elapsed_min, progress_pct=progress_pct)
+        if pred:
+            self.last_prediction[task_def.task_id] = pred
+        return pred
 
-        return task, env, operator, machine, elapsed_min, progress_pct
-
-    def build_assessment(self, machine_state, baseline: dict,
-                          incidents: list[dict] | None = None,
-                          history: list[dict] | None = None) -> dict:
-        now = machine_state.sim_now()  # sim time, not wall clock: this is a simulated site on sim_tick
+    # ------------------------------------------------------------------ main
+    def assess(self, machine_state, baseline: dict, incidents: list[dict] | None = None,
+               history: list[dict] | None = None) -> Assessment:
+        now = machine_state.sim_now()  # sim time, not wall clock
         machine_id = machine_state.machine_id
         row = machine_state.to_feature_row(now)
 
         anomalies = detect_anomalies(row, baseline)
-
-        active_anomalies = []
-        for a in anomalies:
-            key = f"{machine_id}:{a['anomaly_type']}"
-            if self._is_in_cooldown(key, now):
-                continue
-            self._mark_alerted(key, now)
-            active_anomalies.append(a)
-
+        new_anomalies = self._resolve_anomalies(machine_id, anomalies, now)
         readiness = compute_readiness(row, anomalies)
-
-        raw_alerts = run_safety_checks(machine_state)
-        alerts = []
-        for a in raw_alerts:
-            key = f"{machine_id}:{a['alert_type']}"
-            if self._is_in_cooldown(key, now) and a["severity"] not in ("critical",):
-                continue
-            self._mark_alerted(key, now)
-            alerts.append({"alert_id": self._next_alert_id(), **a})
-
+        alerts, new_alerts = self._resolve_alerts(machine_id, run_safety_checks(machine_state, row))
         recommendations = recommend_training(anomalies, incidents or [], history or [])
 
-        task_prediction = None
-        if self._predict_task:
-            derived = self._derive_task_inputs(machine_state, row)
-            if derived:
-                task, env, operator, machine, elapsed_min, progress_pct = derived
-                task_prediction = self._predict_task(task, env, operator, machine,
-                                                       elapsed_min=elapsed_min, progress_pct=progress_pct)
-
-        return {
+        payload = {
             "msg_type": "assessment",
             "timestamp": now.isoformat(),
             "machine_id": machine_id,
             "readiness_score": readiness["readiness_score"],
             "readiness_breakdown": readiness["readiness_breakdown"],
             "zones": zone_radii(row),
-            "proximity_view": proximity_view(machine_state),
+            "proximity_view": proximity_view(machine_state, row),
             "alerts": alerts,
-            "anomalies": active_anomalies,
-            "task_prediction": task_prediction,
+            "anomalies": anomalies,
+            "task_prediction": self._task_prediction(machine_state, now),
             "training_recommendations": recommendations,
         }
+        return Assessment(payload, new_alerts, new_anomalies)
+
+    def build_assessment(self, machine_state, baseline: dict, incidents: list[dict] | None = None,
+                         history: list[dict] | None = None) -> dict:
+        """Backwards-compatible: just the message."""
+        return self.assess(machine_state, baseline, incidents, history).payload
