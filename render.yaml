@@ -3,7 +3,7 @@
 # frontend needs -- a browser blocks plain ws:// from an https:// page.
 services:
   - type: web
-    name: ironsense-backend
+    name: good-question-backend   # URL: https://good-question-backend.onrender.com
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend

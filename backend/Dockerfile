@@ -1,7 +1,7 @@
 # IronSense backend. Build context is backend/ (the image never needs data/).
 #
-#   docker build -t ironsense-backend backend
-#   docker run --rm -p 8000:8000 ironsense-backend
+#   docker build -t good-question-backend backend
+#   docker run --rm -p 8000:8000 good-question-backend
 #
 # For an Intel/AMD host (most EC2 instances) from an Apple Silicon Mac, add
 # --platform linux/amd64. Render builds on its own Intel machines, so it needs nothing.
