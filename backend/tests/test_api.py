@@ -297,3 +297,65 @@ def test_cab_socket_speaks_hindi_when_asked(client):
         payload = cab.receive_json()                      # a screen joining late gets the latest, translated
         assert payload["lang"] == "hi"
         assert any(a["voice_text"] for a in payload["alerts"])
+
+
+# ---------------------------------------------------------------- supervisor fleet view (B2-6)
+
+def _assessment(machine_id: str, score, alerts=(), anomalies=(), task=None) -> dict:
+    return {"msg_type": "assessment", "machine_id": machine_id, "timestamp": "2031-01-01T08:00:00+00:00",
+            "readiness_score": score, "readiness_breakdown": {"seatbelt": 100},
+            "alerts": list(alerts), "anomalies": list(anomalies), "task_prediction": task}
+
+
+def test_fleet_summary_lists_machines_lowest_readiness_first(client):
+    hub = client.app.state.hub
+    saved = hub.latest
+    hub.latest = {
+        "M-OK": _assessment("M-OK", 92),
+        "M-BAD": _assessment(
+            "M-BAD", 41,
+            alerts=[{"severity": "critical"}, {"severity": "critical"}, {"severity": "warning"}],
+            anomalies=[{"anomaly_type": "fatigue", "score": 0.9}, {"anomaly_type": "excessive_idling", "score": 0.7}],
+            task={"task_id": "T9", "planned_min": 45, "p10_min": 47, "p50_min": 52, "p90_min": 58, "remaining_min": 31}),
+        "M-NEW": _assessment("M-NEW", None),
+    }
+    try:
+        body = client.get("/api/fleet/summary").json()
+    finally:
+        hub.latest = saved
+    assert [m["machine_id"] for m in body["machines"]] == ["M-BAD", "M-OK", "M-NEW"]   # no score sorts last
+    bad = body["machines"][0]
+    assert bad["readiness_score"] == 41 and bad["active_alerts"] == 3
+    assert bad["alerts_by_severity"] == {"info": 0, "warning": 1, "high": 0, "critical": 2}
+    assert [a["anomaly_type"] for a in bad["open_anomalies"]] == ["fatigue", "excessive_idling"]
+    assert bad["current_task"] == {"task_id": "T9", "planned_min": 45, "p50_min": 52, "remaining_min": 31}
+    assert body["machines"][1]["current_task"] is None and body["machines"][1]["active_alerts"] == 0
+    assert body["totals"] == {"machines": 3, "active_alerts": 3, "critical_alerts": 2, "open_anomalies": 2,
+                              "avg_readiness": 66.5}
+
+
+def test_fleet_summary_is_empty_before_any_telemetry(client):
+    hub = client.app.state.hub
+    saved = hub.latest
+    hub.latest = {}
+    try:
+        body = client.get("/api/fleet/summary").json()
+    finally:
+        hub.latest = saved
+    assert body == {"machines": [], "totals": {"machines": 0, "active_alerts": 0, "critical_alerts": 0,
+                                               "open_anomalies": 0, "avg_readiness": None}}
+
+
+def test_fleet_summary_reflects_live_telemetry(client):
+    with client.websocket_connect("/ws/cab/EXC001") as cab, client.websocket_connect("/ws/telemetry") as tele:
+        tele.send_json(msg("shift_context", 0))
+        tele.send_json(msg("operation", 60))
+        cab.receive_json()
+        tele.send_json(msg("proximity", 61, objects=[person(3.0)]))
+        for _ in range(4):
+            if cab.receive_json()["alerts"]:
+                break
+    row = next(m for m in client.get("/api/fleet/summary").json()["machines"] if m["machine_id"] == "EXC001")
+    assert row["operator_id"] == "OP1001" and 0 <= row["readiness_score"] <= 100
+    assert row["active_alerts"] >= 1 and row["alerts_by_severity"]["critical"] >= 1
+    assert row["current_task"] and row["current_task"]["task_id"] == "T002" and row["current_task"]["p50_min"] > 0
