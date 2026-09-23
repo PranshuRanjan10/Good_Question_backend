@@ -1,10 +1,12 @@
 """REST endpoints, exactly the set in frontend_handoff_spec_v1.md section 2."""
 
 from __future__ import annotations
+import json
 from datetime import datetime, UTC
+from functools import lru_cache
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -12,7 +14,8 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.db.models import (Alert, AnomalyEvent, HourlySummary, Incident, ReadinessSnapshot,
                            TaskRecord, TrainingCompletion)
-from app.db.writes import recent_history
+from app.db.writes import book_instructor, bookings_for, recent_history, save_completion
+from app.paths import SEED_DIR
 from app.models.anomaly import baseline_for
 from app.decision.recommender import recommend_training, _load_modules
 
@@ -162,21 +165,86 @@ def training_recommendations(operator_id: str, db: Session = Depends(get_db)):
     return {"operator_id": operator_id, "recommendations": recs, "modules": _load_modules()}
 
 
+PASS_MARK_PCT = 60.0
+
+
+@lru_cache(maxsize=1)
+def _content() -> dict:
+    """seed_data/training_content.json: video_url + quiz per module_id (kept apart from
+    training_modules.json, which data/generate_data.py overwrites)."""
+    path = SEED_DIR / "training_content.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def _module(module_id: str) -> dict:
+    module = next((m for m in _load_modules() if m["module_id"] == module_id), None)
+    if module is None:
+        raise HTTPException(status_code=404, detail=f"unknown module_id {module_id!r}")
+    return module
+
+
+@router.get("/training/modules/{module_id}")
+def training_module(module_id: str):
+    """The module plus its lesson content. Correct answers stay server-side (see /training/complete)."""
+    module = _module(module_id)
+    content = _content().get(module_id, {})
+    return {**module, "video_url": content.get("video_url"),
+            "quiz": [{"question": q["question"], "options": q["options"]} for q in content.get("quiz", [])]}
+
+
 class TrainingComplete(BaseModel):
     operator_id: str
     module_id: str
     quiz_score: float | None = None
+    answers: list[int] | None = None       # chosen option index per question, graded server-side
 
 
 @router.post("/training/complete")
-def training_complete(payload: TrainingComplete, db: Session = Depends(get_db)):
-    completion = TrainingCompletion(
-        operator_id=payload.operator_id, module_id=payload.module_id,
-        completed_at=datetime.now(UTC), quiz_score=payload.quiz_score,
-    )
-    db.add(completion)
-    db.commit()
-    return {"status": "recorded"}
+def training_complete(payload: TrainingComplete):
+    """Mark a module done. With `answers` the server grades them against the module's quiz and
+    stores that score; otherwise `quiz_score` (0-100) is stored as sent, as before."""
+    _module(payload.module_id)
+    response: dict = {"status": "recorded"}
+    score = payload.quiz_score
+    if payload.answers is not None:
+        quiz = _content().get(payload.module_id, {}).get("quiz", [])
+        if not quiz:
+            raise HTTPException(status_code=422, detail="this module has no quiz to grade")
+        if len(payload.answers) != len(quiz):
+            raise HTTPException(status_code=422, detail=f"expected {len(quiz)} answers, got {len(payload.answers)}")
+        results = [{"correct": a == q["correct"], "correct_index": q["correct"], "explanation": q["explanation"]}
+                   for a, q in zip(payload.answers, quiz)]
+        right = sum(r["correct"] for r in results)
+        score = round(100.0 * right / len(quiz), 1)
+        response.update(correct=right, total=len(quiz), passed=score >= PASS_MARK_PCT, results=results)
+    save_completion(payload.operator_id, payload.module_id, score)
+    response["score"] = score
+    return response
+
+
+class BookingRequest(BaseModel):
+    operator_id: str
+    module_id: str
+    preferred_slot: datetime
+
+
+def _booking_json(b) -> dict:
+    return {"booking_id": f"BK-{b.id:04d}", "operator_id": b.operator_id, "module_id": b.module_id,
+            "preferred_slot": b.preferred_slot.isoformat(), "confirmed_slot": b.confirmed_slot.isoformat(),
+            "status": b.status}
+
+
+@router.post("/training/book")
+def training_book(payload: BookingRequest):
+    """Instructor booking (TRN-INSTR-01 is the usual module). One session per hour slot: if the
+    preferred hour is taken, the next free hour is confirmed instead."""
+    _module(payload.module_id)
+    return _booking_json(book_instructor(payload.operator_id, payload.module_id, payload.preferred_slot))
+
+
+@router.get("/training/bookings/{operator_id}")
+def training_bookings(operator_id: str):
+    return {"operator_id": operator_id, "bookings": [_booking_json(b) for b in bookings_for(operator_id)]}
 
 
 @router.get("/readiness/history")

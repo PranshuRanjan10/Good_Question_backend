@@ -2,9 +2,10 @@
 sessions. All timestamps are stored as naive UTC (SQLite has no time zones)."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from app.db.models import Alert, AnomalyEvent, HourlySummary, Incident, ReadinessSnapshot, TaskRecord, TrainingCompletion
+from app.db.models import (Alert, AnomalyEvent, HourlySummary, Incident, InstructorBooking, ReadinessSnapshot,
+                           TaskRecord, TrainingCompletion)
 from app.db.session import SessionLocal
 
 # Safety alert -> incident type used by incidents.csv / training_modules.json triggers, so an
@@ -118,5 +119,44 @@ def recent_history(operator_id: str | None, limit: int = 200) -> tuple[list[dict
                   + [{"incident_type": a.anomaly_type, "timestamp": a.timestamp.isoformat()} for a in anoms])
         history = [{"module_id": t.module_id, "completed_at": t.completed_at.isoformat()} for t in done]
         return events, history
+    finally:
+        db.close()
+
+
+def save_completion(operator_id: str, module_id: str, score: float | None) -> None:
+    _commit(TrainingCompletion(operator_id=operator_id, module_id=module_id,
+                               completed_at=naive_utc(datetime.now(timezone.utc)), quiz_score=score))
+
+
+SLOT = timedelta(hours=1)
+
+
+def book_instructor(operator_id: str, module_id: str, preferred: datetime) -> InstructorBooking:
+    """Confirm the preferred hour, or the next free hour if the instructor already has a
+    session then (one instructor, one session per slot)."""
+    preferred = naive_utc(preferred)
+    db = SessionLocal()
+    try:
+        taken = {b.confirmed_slot for b in db.query(InstructorBooking).filter(
+            InstructorBooking.status == "confirmed", InstructorBooking.confirmed_slot >= preferred).all()}
+        slot = preferred
+        while slot in taken:
+            slot += SLOT
+        booking = InstructorBooking(operator_id=operator_id, module_id=module_id, preferred_slot=preferred,
+                                    confirmed_slot=slot, status="confirmed",
+                                    created_at=naive_utc(datetime.now(timezone.utc)))
+        db.add(booking)
+        db.commit()
+        db.refresh(booking)
+        return booking
+    finally:
+        db.close()
+
+
+def bookings_for(operator_id: str) -> list[InstructorBooking]:
+    db = SessionLocal()
+    try:
+        return (db.query(InstructorBooking).filter(InstructorBooking.operator_id == operator_id)
+                .order_by(InstructorBooking.confirmed_slot).all())
     finally:
         db.close()

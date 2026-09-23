@@ -1,0 +1,457 @@
+{
+  "TRN-IDLE-01": {
+    "video_url": "https://example.com/training/TRN-IDLE-01.mp4",
+    "quiz": [
+      {
+        "question": "How long can an idling excavator wait before it counts as excessive idling?",
+        "options": [
+          "5 minutes",
+          "About 20 minutes",
+          "2 hours"
+        ],
+        "correct": 1,
+        "explanation": "Past about 20 minutes of unbroken idling the fuel burn and engine wear add up; shut down or plan the wait."
+      },
+      {
+        "question": "A haul truck is late. What is the best move?",
+        "options": [
+          "Leave the engine running so you are ready",
+          "Shut the engine down and tell the site lead",
+          "Keep digging an empty hole"
+        ],
+        "correct": 1,
+        "explanation": "Shutting down while you wait saves fuel and avoids needless wear."
+      },
+      {
+        "question": "Roughly what does an idling 20 t excavator burn per hour?",
+        "options": [
+          "2 to 4 litres",
+          "10 to 20 litres",
+          "Nothing"
+        ],
+        "correct": 0,
+        "explanation": "Idle burn is small per hour but it accumulates across a fleet and a shift."
+      }
+    ]
+  },
+  "TRN-BELT-01": {
+    "video_url": "https://example.com/training/TRN-BELT-01.mp4",
+    "quiz": [
+      {
+        "question": "When must the seatbelt be fastened?",
+        "options": [
+          "Only when travelling",
+          "Whenever the machine is working or moving",
+          "Only in rain"
+        ],
+        "correct": 1,
+        "explanation": "Digging in place can still tip or jolt the machine, so the belt stays on while you work."
+      },
+      {
+        "question": "What does the seatbelt do in a roll-over?",
+        "options": [
+          "Nothing useful",
+          "Keeps you inside the protective cab",
+          "Slows the machine"
+        ],
+        "correct": 1,
+        "explanation": "The cab is the protective structure; the belt keeps you in it."
+      },
+      {
+        "question": "You unbuckle to wait for a truck. What should you do before working again?",
+        "options": [
+          "Nothing, start digging",
+          "Fasten the belt first",
+          "Ask the spotter"
+        ],
+        "correct": 1,
+        "explanation": "Belt on before any movement, even a short swing."
+      }
+    ]
+  },
+  "TRN-CAB-01": {
+    "video_url": "https://example.com/training/TRN-CAB-01.mp4",
+    "quiz": [
+      {
+        "question": "You need to leave the cab briefly. What is required?",
+        "options": [
+          "Leave the engine running",
+          "Lower the bucket, park, shut down and remove the key",
+          "Just set the parking brake"
+        ],
+        "correct": 1,
+        "explanation": "A running machine with nobody in the seat is a hazard to everyone nearby."
+      },
+      {
+        "question": "Refuelling is allowed when:",
+        "options": [
+          "The engine is running",
+          "The engine is off and there are no ignition sources",
+          "Only at night"
+        ],
+        "correct": 1,
+        "explanation": "Fuel vapour near a hot engine is a fire risk, so the engine is always off."
+      },
+      {
+        "question": "Who may operate the machine?",
+        "options": [
+          "Anyone nearby",
+          "Only the assigned, authorised operator",
+          "Whoever is quickest"
+        ],
+        "correct": 1,
+        "explanation": "Authorised operators only; unauthorised use is logged as a security event."
+      }
+    ]
+  },
+  "TRN-SWING-01": {
+    "video_url": "https://example.com/training/TRN-SWING-01.mp4",
+    "quiz": [
+      {
+        "question": "Why keep the swing rate under about 55 degrees per second?",
+        "options": [
+          "It looks nicer",
+          "Fast swings shift the load and can hit people or the machine",
+          "It saves paint"
+        ],
+        "correct": 1,
+        "explanation": "Fast swings reduce control and stability, especially with a full bucket."
+      },
+      {
+        "question": "When should you swing?",
+        "options": [
+          "When the swing area is clear and the spotter agrees",
+          "Any time",
+          "Only with an empty bucket"
+        ],
+        "correct": 0,
+        "explanation": "Always confirm the swing arc is clear first."
+      },
+      {
+        "question": "Harsh braking and fast swings together usually mean:",
+        "options": [
+          "Efficient work",
+          "Rough, unsafe operation to correct",
+          "A sensor fault"
+        ],
+        "correct": 1,
+        "explanation": "Smooth, progressive control is safer and easier on the machine."
+      }
+    ]
+  },
+  "TRN-TRAVEL-01": {
+    "video_url": "https://example.com/training/TRN-TRAVEL-01.mp4",
+    "quiz": [
+      {
+        "question": "What is the on-site travel speed limit for this machine?",
+        "options": [
+          "Up to 6 km/h",
+          "Up to 20 km/h",
+          "No limit"
+        ],
+        "correct": 0,
+        "explanation": "Above about 6 km/h on site is treated as overspeed."
+      },
+      {
+        "question": "Travelling with the bucket raised is unsafe because:",
+        "options": [
+          "It uses more fuel",
+          "It raises the centre of gravity and blocks your view",
+          "It is noisy"
+        ],
+        "correct": 1,
+        "explanation": "Carry the bucket low while travelling."
+      },
+      {
+        "question": "Approaching an overhead power line you should:",
+        "options": [
+          "Keep the boom low and stay well clear",
+          "Go under quickly",
+          "Ignore it"
+        ],
+        "correct": 0,
+        "explanation": "Keep the boom low and respect the clearance height."
+      }
+    ]
+  },
+  "TRN-SLOPE-01": {
+    "video_url": "https://example.com/training/TRN-SLOPE-01.mp4",
+    "quiz": [
+      {
+        "question": "At what pitch or roll should you stop and reposition?",
+        "options": [
+          "Above 15 degrees",
+          "Above 45 degrees",
+          "Never"
+        ],
+        "correct": 0,
+        "explanation": "Beyond 15 degrees the machine risks tipping; move to level ground."
+      },
+      {
+        "question": "On a slope you should:",
+        "options": [
+          "Turn sharply across it",
+          "Travel straight up or down and keep the load low",
+          "Swing fast to save time"
+        ],
+        "correct": 1,
+        "explanation": "Avoid side loading and sharp turns on slopes."
+      },
+      {
+        "question": "After heavy rain, slopes are:",
+        "options": [
+          "Safer",
+          "Less stable, so reduce your working angle",
+          "Unchanged"
+        ],
+        "correct": 1,
+        "explanation": "Wet, muddy ground reduces grip and stability."
+      }
+    ]
+  },
+  "TRN-LOAD-01": {
+    "video_url": "https://example.com/training/TRN-LOAD-01.mp4",
+    "quiz": [
+      {
+        "question": "What is the safe bucket payload limit for this excavator class?",
+        "options": [
+          "About 2000 kg",
+          "About 5000 kg",
+          "No limit"
+        ],
+        "correct": 0,
+        "explanation": "Above about 2000 kg per bucket is an overload for this class."
+      },
+      {
+        "question": "Overloading the bucket mainly causes:",
+        "options": [
+          "Better output",
+          "Instability and extra wear",
+          "Lower fuel use"
+        ],
+        "correct": 1,
+        "explanation": "Overloads strain the boom and hydraulics and can destabilise the machine."
+      },
+      {
+        "question": "A full but heavy bucket is best handled by:",
+        "options": [
+          "Lifting quickly",
+          "Trimming the load and lifting smoothly",
+          "Swinging fast"
+        ],
+        "correct": 1,
+        "explanation": "Trim the bucket rather than exceed the rated load."
+      }
+    ]
+  },
+  "TRN-ENGINE-01": {
+    "video_url": "https://example.com/training/TRN-ENGINE-01.mp4",
+    "quiz": [
+      {
+        "question": "Coolant above which temperature is an overheating alert?",
+        "options": [
+          "105 C",
+          "70 C",
+          "150 C"
+        ],
+        "correct": 0,
+        "explanation": "Above about 105 C, stop and let the engine cool."
+      },
+      {
+        "question": "What is over-revving?",
+        "options": [
+          "Running above about 2100 rpm",
+          "Running at idle",
+          "Stalling"
+        ],
+        "correct": 0,
+        "explanation": "Sustained high rpm wastes fuel and wears the engine."
+      },
+      {
+        "question": "Your coolant temperature keeps climbing. First step?",
+        "options": [
+          "Keep working",
+          "Stop, idle to cool and report it",
+          "Add cold water at once"
+        ],
+        "correct": 1,
+        "explanation": "Reduce load, let it cool, and report the fault before continuing."
+      }
+    ]
+  },
+  "TRN-FATIGUE-01": {
+    "video_url": "https://example.com/training/TRN-FATIGUE-01.mp4",
+    "quiz": [
+      {
+        "question": "After how long without a break should you rest?",
+        "options": [
+          "About 4 hours",
+          "8 hours",
+          "Never"
+        ],
+        "correct": 0,
+        "explanation": "Beyond about 4 hours of continuous operation, alertness drops."
+      },
+      {
+        "question": "Early signs of fatigue include:",
+        "options": [
+          "Slower reactions and lost focus",
+          "Extra energy",
+          "Better accuracy"
+        ],
+        "correct": 0,
+        "explanation": "Slow reactions and lapses in attention mean it is time to break."
+      },
+      {
+        "question": "On a hot day you should:",
+        "options": [
+          "Skip breaks",
+          "Take cool-down breaks and drink water",
+          "Work faster"
+        ],
+        "correct": 1,
+        "explanation": "Heat adds to fatigue; cool-down breaks are part of safe work."
+      }
+    ]
+  },
+  "TRN-PROX-01": {
+    "video_url": "https://example.com/training/TRN-PROX-01.mp4",
+    "quiz": [
+      {
+        "question": "Where is the biggest blind spot on an excavator?",
+        "options": [
+          "Behind and to the rear side",
+          "Directly in front",
+          "Above the cab"
+        ],
+        "correct": 0,
+        "explanation": "The rear and swing side are hardest to see; use the alarms and a spotter."
+      },
+      {
+        "question": "A worker enters the danger zone. You should:",
+        "options": [
+          "Continue if they are wearing hi-vis",
+          "Stop moving and sound the horn",
+          "Swing faster"
+        ],
+        "correct": 1,
+        "explanation": "Stop all movement until they are clear."
+      },
+      {
+        "question": "In rain, fog, dust or at night the danger zone is:",
+        "options": [
+          "Smaller",
+          "The same",
+          "Wider"
+        ],
+        "correct": 2,
+        "explanation": "Reduced visibility widens the zone from 5 m to about 8 m."
+      }
+    ]
+  },
+  "TRN-SEC-01": {
+    "video_url": "https://example.com/training/TRN-SEC-01.mp4",
+    "quiz": [
+      {
+        "question": "Fuel level falls with the engine off. This is likely:",
+        "options": [
+          "Normal",
+          "A security concern to report",
+          "A sensor rebooting"
+        ],
+        "correct": 1,
+        "explanation": "Unexplained fuel loss with the engine off is treated as possible theft."
+      },
+      {
+        "question": "Operating outside your scheduled hours needs:",
+        "options": [
+          "Nothing",
+          "Supervisor approval",
+          "A different key"
+        ],
+        "correct": 1,
+        "explanation": "After-hours use must be authorised and logged."
+      },
+      {
+        "question": "Someone else asks to use your machine. You should:",
+        "options": [
+          "Hand over the key",
+          "Refuse and tell the site lead",
+          "Let them if they are experienced"
+        ],
+        "correct": 1,
+        "explanation": "Only the assigned, authorised operator uses the machine."
+      }
+    ]
+  },
+  "TRN-WX-01": {
+    "video_url": "https://example.com/training/TRN-WX-01.mp4",
+    "quiz": [
+      {
+        "question": "Lightning is within 10 km. You should:",
+        "options": [
+          "Keep working",
+          "Stop work and move to shelter",
+          "Finish the task first"
+        ],
+        "correct": 1,
+        "explanation": "Stop-work is triggered when lightning is within 10 km."
+      },
+      {
+        "question": "In fog or heavy dust you should:",
+        "options": [
+          "Speed up",
+          "Slow down and keep a wider safety margin",
+          "Turn off the lights"
+        ],
+        "correct": 1,
+        "explanation": "Reduce speed and increase distance from workers."
+      },
+      {
+        "question": "Wet ground usually makes tasks:",
+        "options": [
+          "Faster",
+          "Slower and riskier",
+          "No different"
+        ],
+        "correct": 1,
+        "explanation": "Wet and muddy ground slows work and reduces stability."
+      }
+    ]
+  },
+  "TRN-INSTR-01": {
+    "video_url": "https://example.com/training/TRN-INSTR-01.mp4",
+    "quiz": [
+      {
+        "question": "An instructor session is booked when:",
+        "options": [
+          "You ask for a day off",
+          "The same unsafe pattern repeats within a week",
+          "Never"
+        ],
+        "correct": 1,
+        "explanation": "Three or more repeats of the same unsafe type in seven days triggers a session."
+      },
+      {
+        "question": "What is the aim of the session?",
+        "options": [
+          "To penalise you",
+          "To review your operation with an instructor and fix the habit",
+          "To test the machine"
+        ],
+        "correct": 1,
+        "explanation": "It is coaching on your own recent operating data."
+      },
+      {
+        "question": "What should you bring?",
+        "options": [
+          "Nothing",
+          "Questions about the alerts you received",
+          "Your own tools"
+        ],
+        "correct": 1,
+        "explanation": "Bring the alerts or situations you found confusing."
+      }
+    ]
+  }
+}

@@ -102,3 +102,15 @@ class HourlySummary(Base):
     safety_alert_triggered: Mapped[str] = mapped_column(String)
     safety_alerts: Mapped[int] = mapped_column(Integer)
     fuel_per_cycle_l: Mapped[float] = mapped_column(Float)
+
+
+class InstructorBooking(Base):
+    """A booked instructor session (TRN-INSTR-01 or any module an operator wants coaching on)."""
+    __tablename__ = "instructor_bookings"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    operator_id: Mapped[str] = mapped_column(String, index=True)
+    module_id: Mapped[str] = mapped_column(String)
+    preferred_slot: Mapped[datetime] = mapped_column(DateTime)
+    confirmed_slot: Mapped[datetime] = mapped_column(DateTime, index=True)
+    status: Mapped[str] = mapped_column(String, default="confirmed")
+    created_at: Mapped[datetime] = mapped_column(DateTime)
