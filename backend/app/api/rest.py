@@ -6,7 +6,7 @@ from datetime import datetime, UTC
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.db.models import (Alert, AnomalyEvent, HourlySummary, Incident, ReadinessSnapshot,
                            TaskRecord, TrainingCompletion)
-from app.db.writes import book_instructor, bookings_for, recent_history, save_completion
+from app.db.writes import acknowledge_alert, book_instructor, bookings_for, recent_history, save_completion
 from app.paths import SEED_DIR
 from app.models.anomaly import baseline_for
 from app.decision.recommender import recommend_training, _load_modules
@@ -66,6 +66,45 @@ def list_incidents(operator_id: str | None = None, machine_id: str | None = None
         }
         for i in q.order_by(Incident.timestamp.desc()).limit(200)
     ]
+
+
+@router.get("/incidents/{incident_id}")
+def get_incident(incident_id: int, db: Session = Depends(get_db)):
+    """One incident, including `telemetry_window`: the raw messages from 30 s before the alert
+    (`before`) and 30 s after (`after`, filled in once sim time has moved on) that critical
+    alerts store automatically. Manual reports have an empty window."""
+    i = db.get(Incident, incident_id)
+    if i is None:
+        raise HTTPException(status_code=404, detail=f"no incident {incident_id}")
+    return {
+        "id": i.id, "machine_id": i.machine_id, "operator_id": i.operator_id,
+        "incident_type": i.incident_type, "severity": i.severity, "cause": i.cause,
+        "source": i.source, "timestamp": i.timestamp.isoformat() if i.timestamp else None,
+        "telemetry_window": i.telemetry_window or {},
+    }
+
+
+@router.get("/alerts")
+def list_alerts(machine_id: str | None = None, limit: int = Query(50, ge=1, le=500),
+                db: Session = Depends(get_db)):
+    """Recent alerts, newest first."""
+    q = db.query(Alert)
+    if machine_id:
+        q = q.filter(Alert.machine_id == machine_id)
+    return [
+        {"id": a.id, "alert_id": a.alert_id, "machine_id": a.machine_id, "operator_id": a.operator_id,
+         "alert_type": a.alert_type, "severity": a.severity, "message": a.message,
+         "timestamp": a.timestamp.isoformat() if a.timestamp else None, "acknowledged": a.acknowledged}
+        for a in q.order_by(Alert.timestamp.desc(), Alert.id.desc()).limit(limit)
+    ]
+
+
+@router.post("/alerts/{alert_id}/ack")
+def ack_alert(alert_id: str):
+    """Same effect as the cab socket's {"msg_type": "ack", "alert_id": ...}."""
+    if not acknowledge_alert(alert_id):
+        raise HTTPException(status_code=404, detail=f"no alert {alert_id}")
+    return {"alert_id": alert_id, "acknowledged": True}
 
 
 class ManualIncident(BaseModel):
