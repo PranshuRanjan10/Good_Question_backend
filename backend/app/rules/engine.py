@@ -21,10 +21,14 @@ def _finding(anomaly_type: str, message: str, severity: str = "warning") -> dict
 
 
 def rule_excessive_idling(row: dict) -> dict | None:
-    idle_ratio = row.get("idle_ratio", 0)
-    idle_min = row.get("idle_min", idle_ratio * 5)  # windows are 5 min
-    if idle_min > THRESHOLDS["idle_min"] or idle_ratio > THRESHOLDS["idle_ratio"]:
-        return _finding("excessive_idling", f"Idle ratio {idle_ratio:.2f}")
+    # A 5-minute window can't hold a 20-minute idle, and short truck-swap waits push the
+    # window ratio over 0.6 all the time, so the rule reads the unbroken idle streak.
+    # Idling during a declared break is fuel waste, not this anomaly (training agrees).
+    if row.get("on_break"):
+        return None
+    streak = row.get("idle_streak_min", 0) or 0
+    if streak >= THRESHOLDS["idle_min"] and row.get("idle_ratio", 0) > THRESHOLDS["idle_ratio"]:
+        return _finding("excessive_idling", f"Idling for {streak:.0f} min")
     return None
 
 
@@ -47,7 +51,7 @@ def rule_harsh_operation(row: dict) -> dict | None:
 
 
 def rule_bucket_raised_travel(row: dict) -> dict | None:
-    if row.get("bucket_raised_travel_s", 0) > 0 and row.get("ground_speed_max_kmh", 0) > 0:
+    if row.get("bucket_raised_travel_s", 0) > THRESHOLDS["bucket_raised_travel_s"] and row.get("ground_speed_max_kmh", 0) > 0:
         return _finding("bucket_raised_travel", f"{row['bucket_raised_travel_s']:.0f}s traveling with bucket raised", "danger")
     return None
 
@@ -81,14 +85,17 @@ def rule_overheating(row: dict) -> dict | None:
 
 
 def rule_fuel_theft(row: dict) -> dict | None:
-    if row.get("fuel_drop_engine_off_pct", 0) > 0:
+    if row.get("fuel_drop_engine_off_pct", 0) > THRESHOLDS["fuel_drop_off_pct"]:
         return _finding("fuel_theft", f"Fuel dropped {row['fuel_drop_engine_off_pct']:.1f}% with engine off", "danger")
     return None
 
 
 def rule_operator_out_of_seat(row: dict) -> dict | None:
-    if row.get("seat_empty_engine_on_min", 0) > 0:
-        return _finding("operator_out_of_seat", f"{row['seat_empty_engine_on_min']:.1f} min seat empty, engine on", "danger")
+    # Break minutes inside the same window don't count (engine-idling on a break is normal in
+    # training); the live row carries the out-of-seat time outside breaks separately.
+    empty = row.get("seat_empty_outside_break_min", row.get("seat_empty_engine_on_min", 0))
+    if empty > 0 and not row.get("on_break"):
+        return _finding("operator_out_of_seat", f"{empty:.1f} min seat empty, engine on", "danger")
     return None
 
 
@@ -105,13 +112,16 @@ def rule_fatigue(row: dict) -> dict | None:
 
 
 def rule_after_hours_use(row: dict) -> dict | None:
-    if row.get("within_scheduled_hours", True) is False:
+    # Arrives as 0/1. Overtime straight after the shift is normal (training agrees); the
+    # pattern is the engine being started again outside the schedule.
+    if (not row.get("within_scheduled_hours", 1) and row.get("engine_started_outside_hours", True)
+            and row.get("engine_on", True)):
         return _finding("after_hours_use", "Operating outside scheduled hours")
     return None
 
 
 def rule_unauthorized_operator(row: dict) -> dict | None:
-    if row.get("operator_matches_assigned", True) is False:
+    if not row.get("operator_matches_assigned", 1):
         return _finding("unauthorized_operator", "Operator differs from assigned operator")
     return None
 

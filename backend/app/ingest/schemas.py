@@ -29,6 +29,7 @@ EventType = Literal[
     "harsh_brake", "collision", "tilt_warning", "fault_code", "refuel_start",
     "refuel_end", "task_start", "task_complete", "break_start", "break_end",
     "manual_incident", "manual_near_miss", "walkaround_completed", "weather_change",
+    "lightning_nearby",  # spec section 6 (scenario 6)
 ]
 EventSource = Literal["sensor", "operator", "director_console"]
 

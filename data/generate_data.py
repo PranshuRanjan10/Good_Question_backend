@@ -672,8 +672,14 @@ def window_features(m: pd.DataFrame, minutes: int = 5) -> pd.DataFrame:
     m["belt_off_on"] = (on & m.seat_occupied & ~m.seatbelt_fastened).astype(int)
     m["seat_empty_on"] = (on & ~m.seat_occupied).astype(int)
     m["dropout"] = m.rpm_mean.isna().astype(int) * on
-    m["off_fuel_drop"] = np.where(~on, -m.groupby("machine_id").fuel_level_pct.diff().fillna(0), 0.0)
+    # Only falls count: a refuel with the engine off is a rise, not "negative theft".
+    m["off_fuel_drop"] = np.where(~on, (-m.groupby("machine_id").fuel_level_pct.diff().fillna(0)).clip(lower=0), 0.0)
     m["is_anom"] = (m.anomaly_label != "normal").astype(int)
+    # Unbroken idle stretch at each minute (what the live rules read as idle_streak_min).
+    # Idling on a declared break doesn't count, matching the live rule.
+    idle_now = (m.engine_state == "idle") & (m["mode"] != "break")
+    run_id = (~idle_now).groupby(m.machine_id).cumsum()
+    m["idle_streak"] = idle_now.groupby([m.machine_id, run_id]).cumsum().where(idle_now, 0)
     rank = m.anomaly_label.where(m.anomaly_label != "normal")
 
     g = m.groupby(["machine_id", "window_start"])
@@ -700,6 +706,7 @@ def window_features(m: pd.DataFrame, minutes: int = 5) -> pd.DataFrame:
         ambient_temp_c=("ambient_temp_c", "first"), visibility_m=("visibility_m", "first"),
         lightning_distance_km=("lightning_distance_km", "min"), safety_alert_min=("safety_alert", "sum"),
         incident=("incident", "max"), anomaly_min=("is_anom", "sum"),
+        idle_streak_min=("idle_streak", "last"),
     ).reset_index()
     lbl = rank.groupby([m.machine_id, m.window_start]).agg(lambda s: s.mode().iat[0] if s.notna().any() else "normal")
     cause = m.anomaly_cause.where(m.anomaly_cause != "").groupby([m.machine_id, m.window_start]).agg(
@@ -898,7 +905,18 @@ def main():
     m.drop(columns=["incident"]).to_parquet(OUT / "minute_telemetry.parquet", index=False)
 
     write_training_catalog(windows, incidents)
+    refresh_backend_seed()
     print_summary(tasks, hourly, windows, incidents, m)
+
+
+def refresh_backend_seed():
+    """The backend runs from backend/ alone (containers / EC2), so it keeps its own copy of the
+    small reference files it reads at runtime."""
+    import shutil
+    seed = Path(__file__).resolve().parents[1] / "backend" / "seed_data"
+    seed.mkdir(parents=True, exist_ok=True)
+    for name in ("machines.csv", "training_modules.json", "incidents.csv", "training_history.csv"):
+        shutil.copy2(OUT / name, seed / name)
 
 
 TRAINING_MODULES = [

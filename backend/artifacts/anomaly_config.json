@@ -88,6 +88,7 @@
     "end"
   ],
   "thresholds_source": "app/rules/thresholds.py",
+  "decision_threshold": 0.8,
   "baselines_fallback": {
     "OP1001": {
       "engine_hours": 821.7,
@@ -300,7 +301,7 @@
       "safety_alerts": 0.0,
       "red_zone_min": 0.0,
       "incidents": 0.0,
-      "ambient_temp_c": 27.666666666666664,
+      "ambient_temp_c": 27.666666666666668,
       "truck_wait_min": 0.0,
       "anomaly_minutes": 0.0,
       "truck_loads": 11.0,

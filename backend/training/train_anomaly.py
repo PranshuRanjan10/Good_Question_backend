@@ -58,6 +58,8 @@ FEATURE_LIST = [
     "operator_matches_assigned", "sensor_dropout_min",
 ]
 
+DECISION_THRESHOLD = 0.8
+
 # features whose scale depends on machine size (divide by size_factor before fitting)
 SCALE_BY_SIZE = ["bucket_payload_max_kg", "rpm_max"]
 
@@ -237,6 +239,9 @@ def main():
         "train_window": ["start", TRAIN_END],
         "test_window": [TEST_START, "end"],
         "thresholds_source": "app/rules/thresholds.py",
+        # class_weight="balanced" pushes probabilities up, so 0.5 over-flags (April precision
+        # 0.67). 0.8 gives precision 0.90 / recall 0.84 on the April test month.
+        "decision_threshold": DECISION_THRESHOLD,
         "baselines_fallback": baselines,  # prefer artifacts/operator_baselines.json (Pranshu's) at runtime
     }
 

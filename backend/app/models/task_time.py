@@ -141,14 +141,18 @@ def predict_task(task: dict, env: dict, operator: dict, machine: dict,
 
     remaining = None
     if elapsed_min is not None:
-        total = mid
         if progress_pct and progress_pct >= 1:
             observed_total = elapsed_min / (min(progress_pct, 99.0) / 100.0)
             w = _pace_weight(progress_pct)
-            total = (1 - w) * mid + w * observed_total
+            # Blend all three with the observed pace. p50 must move too, or a fast/slow pace
+            # drags p10/p90 across it (seen live: p10 37, p50 49, p90 42).
+            mid = (1 - w) * mid + w * observed_total
             lo = (1 - w) * lo + w * observed_total * 0.9
             hi = (1 - w) * hi + w * observed_total * 1.1
-        remaining = max(0.0, total - elapsed_min)
+        # The task can't finish before the time already spent.
+        lo, mid, hi = (max(v, elapsed_min) for v in (lo, mid, hi))
+        lo, mid, hi = sorted((lo, mid, hi))
+        remaining = max(0.0, mid - elapsed_min)
 
     return {
         "task_id": task.get("task_id"),

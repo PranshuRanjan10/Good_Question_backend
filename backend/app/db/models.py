@@ -30,7 +30,9 @@ class Incident(Base):
 class Alert(Base):
     __tablename__ = "alerts"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    alert_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)  # AL-0001, as sent to the cab
     machine_id: Mapped[str] = mapped_column(String, index=True)
+    operator_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     alert_type: Mapped[str] = mapped_column(String)
     severity: Mapped[str] = mapped_column(String)
     message: Mapped[str] = mapped_column(String)
@@ -56,6 +58,7 @@ class TaskRecord(Base):
     task_type: Mapped[str | None] = mapped_column(String, nullable=True)
     planned_min: Mapped[float | None] = mapped_column(Float, nullable=True)
     actual_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    predicted_p50_min: Mapped[float | None] = mapped_column(Float, nullable=True)  # last live prediction
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -67,3 +70,35 @@ class TrainingCompletion(Base):
     module_id: Mapped[str] = mapped_column(String)
     completed_at: Mapped[datetime] = mapped_column(DateTime)
     quiz_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class AnomalyEvent(Base):
+    """One row each time an anomaly type starts (not every 10 s while it lasts)."""
+    __tablename__ = "anomaly_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    machine_id: Mapped[str] = mapped_column(String, index=True)
+    operator_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    anomaly_type: Mapped[str] = mapped_column(String, index=True)
+    method: Mapped[str] = mapped_column(String)
+    score: Mapped[float] = mapped_column(Float)
+    explanation: Mapped[list] = mapped_column(JSON, default=list)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, index=True)
+
+
+class HourlySummary(Base):
+    """The backend-built interval_summary (organizers' telemetry columns)."""
+    __tablename__ = "hourly_summaries"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    machine_id: Mapped[str] = mapped_column(String, index=True)
+    operator_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, index=True)
+    engine_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fuel_used_l: Mapped[float] = mapped_column(Float)
+    load_cycles: Mapped[int] = mapped_column(Integer)
+    idling_time_min: Mapped[float] = mapped_column(Float)
+    engine_on_min: Mapped[float] = mapped_column(Float)
+    seatbelt_status: Mapped[str] = mapped_column(String)
+    seatbelt_compliance_pct: Mapped[float] = mapped_column(Float)
+    safety_alert_triggered: Mapped[str] = mapped_column(String)
+    safety_alerts: Mapped[int] = mapped_column(Integer)
+    fuel_per_cycle_l: Mapped[float] = mapped_column(Float)

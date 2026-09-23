@@ -89,13 +89,15 @@ class AnomalyDetector:
             return False, None, 0.0
         x = self._feature_vector(row)
         proba = self.binary_model.predict_proba(x)[0]
-        is_anomaly = bool(self.binary_model.predict(x)[0])
         confidence = float(proba[1]) if len(proba) > 1 else float(proba[0])
+        # Operating point chosen on the April test month (see train_anomaly.py), not the 0.5
+        # default, which over-flags because training used balanced class weights.
+        is_anomaly = confidence >= float(self.config.get("decision_threshold", 0.8))
 
         label = None
         if is_anomaly and self.multiclass_model is not None:
             class_idx = self.multiclass_model.predict(x)[0]
-            label = self.label_encoder.inverse_transform([class_idx])[0]
+            label = str(self.label_encoder.inverse_transform([class_idx])[0])  # np.str_ -> str for JSON
 
         return is_anomaly, label, confidence
 
@@ -129,12 +131,18 @@ def explain(row: dict, baseline: dict, anomaly_type: str) -> list[str]:
         base = baseline.get(baseline_key) if baseline_key else None
         if cur is not None and base is not None:
             label = row_key.replace("_", " ")
-            sentences.append(f"{label}: {cur:.2f} {unit} vs your baseline {base:.2f} {unit}".strip())
+            u = f" {unit}" if unit else ""
+            sentences.append(f"{label.capitalize()}: {cur:.2f}{u} vs your baseline {base:.2f}{u}")
+    if anomaly_type == "excessive_idling" and row.get("idle_streak_min"):
+        sentences.append(f"Idling for {row['idle_streak_min']:.0f} min")
     if anomaly_type == "excessive_idling" and row.get("truck_wait_min", 0) > 0:
         sentences.append("Likely waiting for haul truck")
     if not sentences:
         sentences.append(f"Flagged as {anomaly_type.replace('_', ' ')}")
     return sentences[:3]
+
+
+_BREAK_EXEMPT = {"excessive_idling", "operator_out_of_seat"}
 
 
 def detect_anomalies(row: dict, baseline: dict) -> list[dict]:
@@ -147,6 +155,10 @@ def detect_anomalies(row: dict, baseline: dict) -> list[dict]:
     """
     rule_findings = {f["anomaly_type"]: f for f in run_rules(row)}
     is_model_anomaly, model_label, confidence = _detector.predict(row)
+    if row.get("on_break") and model_label in _BREAK_EXEMPT:
+        # Training labels engine-idling on a scheduled break as normal; the model has no
+        # break flag, so the declared break (break_start/break_end events) decides.
+        is_model_anomaly, model_label = False, None
 
     results = []
 

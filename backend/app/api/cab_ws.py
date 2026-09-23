@@ -1,52 +1,33 @@
-"""ws /ws/cab/{machine_id} - pushes `assessment` every 10s, plus immediately
-on a new alert (per frontend_handoff_spec_v1.md section 4 & 10).
+"""ws /ws/cab/{machine_id} - registers the screen with the CabHub, which pushes `assessment`
+every 10 s and immediately on a new alert (frontend_handoff_spec_v1.md sections 4 and 10).
+
+The screen may send `{"msg_type": "ack", "alert_id": "AL-0107"}` when the operator
+acknowledges an alert; it is recorded on the alert row.
 """
 
 from __future__ import annotations
-import asyncio
-
-from datetime import datetime
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.models.anomaly import baseline_for
-from app.db.session import SessionLocal
-from app.db.models import ReadinessSnapshot
-
-PUSH_INTERVAL_SECONDS = 10
+from app.db.writes import acknowledge_alert
 
 router = APIRouter()
-
-
-def _persist_readiness(machine_id: str, assessment: dict) -> None:
-    db = SessionLocal()
-    try:
-        db.add(ReadinessSnapshot(
-            machine_id=machine_id,
-            timestamp=datetime.fromisoformat(assessment["timestamp"]),
-            readiness_score=assessment["readiness_score"],
-            readiness_breakdown=assessment["readiness_breakdown"],
-        ))
-        db.commit()
-    finally:
-        db.close()
 
 
 @router.websocket("/ws/cab/{machine_id}")
 async def cab_ws(websocket: WebSocket, machine_id: str):
     await websocket.accept()
-    state_manager = websocket.app.state.state_manager
-    decision_layer = websocket.app.state.decision_layer
-
+    hub = websocket.app.state.hub
+    await hub.connect(machine_id, websocket)
     try:
         while True:
-            machine_state = state_manager.get(machine_id)
-            if machine_state is not None and machine_state.latest_operation is not None:
-                operator_id = machine_state.latest_operation.operator_id
-                baseline = baseline_for(operator_id)
-                assessment = decision_layer.build_assessment(machine_state, baseline)
-                await websocket.send_json(assessment)
-                _persist_readiness(machine_id, assessment)
-            await asyncio.sleep(PUSH_INTERVAL_SECONDS)
+            try:
+                msg = await websocket.receive_json()
+            except ValueError:
+                continue
+            if isinstance(msg, dict) and msg.get("msg_type") == "ack" and msg.get("alert_id"):
+                acknowledge_alert(str(msg["alert_id"]))
     except WebSocketDisconnect:
         pass
+    finally:
+        hub.disconnect(machine_id, websocket)
