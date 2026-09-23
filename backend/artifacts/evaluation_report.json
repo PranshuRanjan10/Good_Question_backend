@@ -1,0 +1,590 @@
+{
+  "rules_only": {
+    "overall": {
+      "0": {
+        "precision": 0.992008111170752,
+        "recall": 0.7312494504528269,
+        "f1-score": 0.8419001341330701,
+        "support": 22746.0
+      },
+      "1": {
+        "precision": 0.12671428571428572,
+        "recall": 0.8687561214495593,
+        "f1-score": 0.2211694302456053,
+        "support": 1021.0
+      },
+      "accuracy": 0.7371565616190516,
+      "macro avg": {
+        "precision": 0.5593611984425189,
+        "recall": 0.8000027859511931,
+        "f1-score": 0.5315347821893377,
+        "support": 23767.0
+      },
+      "weighted avg": {
+        "precision": 0.9548361923004255,
+        "recall": 0.7371565616190516,
+        "f1-score": 0.8152343349716655,
+        "support": 23767.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        16633,
+        6113
+      ],
+      [
+        134,
+        887
+      ]
+    ],
+    "per_label": {
+      "normal": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 0.0
+      },
+      "slope_exceeded": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 33.0
+      },
+      "excessive_idling": {
+        "precision": 1.0,
+        "recall": 0.9555555555555556,
+        "f1-score": 0.9772727272727273,
+        "support": 135.0
+      },
+      "fatigue": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 484.0
+      },
+      "harsh_operation": {
+        "precision": 1.0,
+        "recall": 0.09375,
+        "f1-score": 0.17142857142857143,
+        "support": 32.0
+      },
+      "seatbelt_off_while_moving": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 22.0
+      },
+      "overspeed": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 40.0
+      },
+      "over_rev": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 32.0
+      },
+      "operator_out_of_seat": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 13.0
+      },
+      "fast_swing": {
+        "precision": 1.0,
+        "recall": 0.9459459459459459,
+        "f1-score": 0.9722222222222222,
+        "support": 37.0
+      },
+      "unauthorized_operator": {
+        "precision": 1.0,
+        "recall": 0.36363636363636365,
+        "f1-score": 0.5333333333333333,
+        "support": 33.0
+      },
+      "overheating": {
+        "precision": 1.0,
+        "recall": 0.2857142857142857,
+        "f1-score": 0.4444444444444444,
+        "support": 21.0
+      },
+      "bucket_raised_travel": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 38.0
+      },
+      "unsafe_refuelling": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2.0
+      },
+      "sensor_dropout": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2.0
+      },
+      "after_hours_use": {
+        "precision": 1.0,
+        "recall": 0.3076923076923077,
+        "f1-score": 0.47058823529411764,
+        "support": 65.0
+      },
+      "overload": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 5.0
+      },
+      "low_productivity": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 16.0
+      },
+      "fuel_theft": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 11.0
+      }
+    }
+  },
+  "model_only": {
+    "overall": {
+      "0": {
+        "precision": 0.9949578332069073,
+        "recall": 0.9803042293150444,
+        "f1-score": 0.9875766769271652,
+        "support": 22746.0
+      },
+      "1": {
+        "precision": 0.6696165191740413,
+        "recall": 0.8893241919686582,
+        "f1-score": 0.7639882204459403,
+        "support": 1021.0
+      },
+      "accuracy": 0.9763958429755544,
+      "macro avg": {
+        "precision": 0.8322871761904743,
+        "recall": 0.9348142106418513,
+        "f1-score": 0.8757824486865528,
+        "support": 23767.0
+      },
+      "weighted avg": {
+        "precision": 0.9809815853999669,
+        "recall": 0.9763958429755544,
+        "f1-score": 0.977971602072647,
+        "support": 23767.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        22298,
+        448
+      ],
+      [
+        113,
+        908
+      ]
+    ],
+    "per_label": {
+      "normal": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 0.0
+      },
+      "slope_exceeded": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 33.0
+      },
+      "excessive_idling": {
+        "precision": 1.0,
+        "recall": 0.5111111111111111,
+        "f1-score": 0.6764705882352942,
+        "support": 135.0
+      },
+      "fatigue": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 484.0
+      },
+      "harsh_operation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 32.0
+      },
+      "seatbelt_off_while_moving": {
+        "precision": 1.0,
+        "recall": 0.7727272727272727,
+        "f1-score": 0.8717948717948718,
+        "support": 22.0
+      },
+      "overspeed": {
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1-score": 0.9743589743589743,
+        "support": 40.0
+      },
+      "over_rev": {
+        "precision": 1.0,
+        "recall": 0.84375,
+        "f1-score": 0.9152542372881356,
+        "support": 32.0
+      },
+      "operator_out_of_seat": {
+        "precision": 1.0,
+        "recall": 0.23076923076923078,
+        "f1-score": 0.375,
+        "support": 13.0
+      },
+      "fast_swing": {
+        "precision": 1.0,
+        "recall": 0.972972972972973,
+        "f1-score": 0.9863013698630136,
+        "support": 37.0
+      },
+      "unauthorized_operator": {
+        "precision": 1.0,
+        "recall": 0.9696969696969697,
+        "f1-score": 0.9846153846153847,
+        "support": 33.0
+      },
+      "overheating": {
+        "precision": 1.0,
+        "recall": 0.9047619047619048,
+        "f1-score": 0.95,
+        "support": 21.0
+      },
+      "bucket_raised_travel": {
+        "precision": 1.0,
+        "recall": 0.9210526315789473,
+        "f1-score": 0.958904109589041,
+        "support": 38.0
+      },
+      "unsafe_refuelling": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "sensor_dropout": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2.0
+      },
+      "after_hours_use": {
+        "precision": 1.0,
+        "recall": 0.9692307692307692,
+        "f1-score": 0.984375,
+        "support": 65.0
+      },
+      "overload": {
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1-score": 0.8888888888888888,
+        "support": 5.0
+      },
+      "low_productivity": {
+        "precision": 1.0,
+        "recall": 0.1875,
+        "f1-score": 0.3157894736842105,
+        "support": 16.0
+      },
+      "fuel_theft": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 11.0
+      }
+    }
+  },
+  "rules_plus_model": {
+    "overall": {
+      "0": {
+        "precision": 0.9987966305655837,
+        "recall": 0.7297986459157654,
+        "f1-score": 0.8433673728598283,
+        "support": 22746.0
+      },
+      "1": {
+        "precision": 0.14005876591576885,
+        "recall": 0.980411361410382,
+        "f1-score": 0.2451028403525955,
+        "support": 1021.0
+      },
+      "accuracy": 0.7405646484621534,
+      "macro avg": {
+        "precision": 0.5694276982406763,
+        "recall": 0.8551050036630736,
+        "f1-score": 0.5442351066062119,
+        "support": 23767.0
+      },
+      "weighted avg": {
+        "precision": 0.9619063474079508,
+        "recall": 0.7405646484621534,
+        "f1-score": 0.8176666917604096,
+        "support": 23767.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        16600,
+        6146
+      ],
+      [
+        20,
+        1001
+      ]
+    ],
+    "per_label": {
+      "normal": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 0.0
+      },
+      "slope_exceeded": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 33.0
+      },
+      "excessive_idling": {
+        "precision": 1.0,
+        "recall": 0.9555555555555556,
+        "f1-score": 0.9772727272727273,
+        "support": 135.0
+      },
+      "fatigue": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 484.0
+      },
+      "harsh_operation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 32.0
+      },
+      "seatbelt_off_while_moving": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 22.0
+      },
+      "overspeed": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 40.0
+      },
+      "over_rev": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 32.0
+      },
+      "operator_out_of_seat": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 13.0
+      },
+      "fast_swing": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 37.0
+      },
+      "unauthorized_operator": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 33.0
+      },
+      "overheating": {
+        "precision": 1.0,
+        "recall": 0.9523809523809523,
+        "f1-score": 0.975609756097561,
+        "support": 21.0
+      },
+      "bucket_raised_travel": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 38.0
+      },
+      "unsafe_refuelling": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2.0
+      },
+      "sensor_dropout": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2.0
+      },
+      "after_hours_use": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 65.0
+      },
+      "overload": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 5.0
+      },
+      "low_productivity": {
+        "precision": 1.0,
+        "recall": 0.1875,
+        "f1-score": 0.3157894736842105,
+        "support": 16.0
+      },
+      "fuel_theft": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 11.0
+      }
+    }
+  },
+  "multiclass": {
+    "after_hours_use": {
+      "precision": 0.9672131147540983,
+      "recall": 0.9076923076923077,
+      "f1-score": 0.9365079365079365,
+      "support": 65.0
+    },
+    "bucket_raised_travel": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 38.0
+    },
+    "excessive_idling": {
+      "precision": 0.9612403100775194,
+      "recall": 0.9185185185185185,
+      "f1-score": 0.9393939393939394,
+      "support": 135.0
+    },
+    "fast_swing": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 37.0
+    },
+    "fatigue": {
+      "precision": 1.0,
+      "recall": 0.9979338842975206,
+      "f1-score": 0.9989658738366081,
+      "support": 484.0
+    },
+    "fuel_theft": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 11.0
+    },
+    "harsh_operation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 32.0
+    },
+    "low_productivity": {
+      "precision": 0.75,
+      "recall": 0.75,
+      "f1-score": 0.75,
+      "support": 16.0
+    },
+    "operator_out_of_seat": {
+      "precision": 0.5263157894736842,
+      "recall": 0.7692307692307693,
+      "f1-score": 0.625,
+      "support": 13.0
+    },
+    "over_rev": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 32.0
+    },
+    "overheating": {
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1-score": 0.8571428571428571,
+      "support": 21.0
+    },
+    "overload": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 5.0
+    },
+    "overspeed": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 40.0
+    },
+    "seatbelt_off_while_moving": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 22.0
+    },
+    "sensor_dropout": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "slope_exceeded": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 33.0
+    },
+    "unauthorized_operator": {
+      "precision": 1.0,
+      "recall": 0.9393939393939394,
+      "f1-score": 0.96875,
+      "support": 33.0
+    },
+    "unsafe_refuelling": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 2.0
+    },
+    "accuracy": 0.9735553379040157,
+    "macro avg": {
+      "precision": 0.9419316230169612,
+      "recall": 0.9601538566185029,
+      "f1-score": 0.9486533670489634,
+      "support": 1021.0
+    },
+    "weighted avg": {
+      "precision": 0.9776967674658564,
+      "recall": 0.9735553379040157,
+      "f1-score": 0.9748133502723957,
+      "support": 1021.0
+    }
+  }
+}
