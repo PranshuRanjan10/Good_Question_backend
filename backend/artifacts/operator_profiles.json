@@ -1,0 +1,1475 @@
+{
+  "operators": {
+    "OP1001": {
+      "skill_score": 45.4,
+      "level": "Intermediate",
+      "trend": "steady",
+      "components": {
+        "efficiency": 51.7,
+        "compliance": 39.8,
+        "safety": 41.6,
+        "smoothness": 49.7
+      },
+      "weeks_of_history": 27,
+      "as_of": "2025-04-28",
+      "slope_per_week": 0.047,
+      "component_trend": {
+        "efficiency": 0.544,
+        "compliance": -0.137,
+        "safety": 0.018,
+        "smoothness": -0.584
+      },
+      "delta_vs_first_weeks": 1.2
+    },
+    "OP1002": {
+      "skill_score": 70.1,
+      "level": "Expert",
+      "trend": "steady",
+      "components": {
+        "efficiency": 87.8,
+        "compliance": 89.9,
+        "safety": 35.9,
+        "smoothness": 69.9
+      },
+      "weeks_of_history": 27,
+      "as_of": "2025-04-28",
+      "slope_per_week": 0.114,
+      "component_trend": {
+        "efficiency": 0.028,
+        "compliance": 0.185,
+        "safety": -0.175,
+        "smoothness": 0.747
+      },
+      "delta_vs_first_weeks": 1.7
+    },
+    "OP1003": {
+      "skill_score": 48.8,
+      "level": "Intermediate",
+      "trend": "steady",
+      "components": {
+        "efficiency": 46.3,
+        "compliance": 64.5,
+        "safety": 47.5,
+        "smoothness": 30.2
+      },
+      "weeks_of_history": 27,
+      "as_of": "2025-04-28",
+      "slope_per_week": -0.037,
+      "component_trend": {
+        "efficiency": 0.168,
+        "compliance": -0.555,
+        "safety": -0.114,
+        "smoothness": 0.571
+      },
+      "delta_vs_first_weeks": -1.9
+    },
+    "OP1004": {
+      "skill_score": 31.9,
+      "level": "Beginner",
+      "trend": "steady",
+      "components": {
+        "efficiency": 26.0,
+        "compliance": 39.8,
+        "safety": 32.2,
+        "smoothness": 30.2
+      },
+      "weeks_of_history": 27,
+      "as_of": "2025-04-28",
+      "slope_per_week": 0.044,
+      "component_trend": {
+        "efficiency": 0.744,
+        "compliance": 0.289,
+        "safety": -0.462,
+        "smoothness": -0.75
+      },
+      "delta_vs_first_weeks": 1.3
+    },
+    "OP1005": {
+      "skill_score": 64.5,
+      "level": "Expert",
+      "trend": "steady",
+      "components": {
+        "efficiency": 93.3,
+        "compliance": 82.1,
+        "safety": 42.4,
+        "smoothness": 21.7
+      },
+      "weeks_of_history": 27,
+      "as_of": "2025-04-28",
+      "slope_per_week": 0.03,
+      "component_trend": {
+        "efficiency": 0.042,
+        "compliance": 0.392,
+        "safety": -0.377,
+        "smoothness": 0.213
+      },
+      "delta_vs_first_weeks": 0.6
+    },
+    "OP1006": {
+      "skill_score": 45.8,
+      "level": "Intermediate",
+      "trend": "declining",
+      "components": {
+        "efficiency": 61.7,
+        "compliance": 35.4,
+        "safety": 27.2,
+        "smoothness": 68.6
+      },
+      "weeks_of_history": 27,
+      "as_of": "2025-04-28",
+      "slope_per_week": -0.249,
+      "component_trend": {
+        "efficiency": 0.048,
+        "compliance": -0.086,
+        "safety": -0.798,
+        "smoothness": -0.015
+      },
+      "delta_vs_first_weeks": -8.3
+    },
+    "OP1007": {
+      "skill_score": 24.7,
+      "level": "Beginner",
+      "trend": "steady",
+      "components": {
+        "efficiency": 16.6,
+        "compliance": 17.6,
+        "safety": 40.3,
+        "smoothness": 21.5
+      },
+      "weeks_of_history": 27,
+      "as_of": "2025-04-28",
+      "slope_per_week": 0.015,
+      "component_trend": {
+        "efficiency": 0.008,
+        "compliance": 0.009,
+        "safety": -0.058,
+        "smoothness": 0.188
+      },
+      "delta_vs_first_weeks": 1.7
+    },
+    "OP1008": {
+      "skill_score": 51.6,
+      "level": "Intermediate",
+      "trend": "steady",
+      "components": {
+        "efficiency": 58.8,
+        "compliance": 64.3,
+        "safety": 25.9,
+        "smoothness": 67.4
+      },
+      "weeks_of_history": 27,
+      "as_of": "2025-04-28",
+      "slope_per_week": -0.031,
+      "component_trend": {
+        "efficiency": 0.355,
+        "compliance": -0.416,
+        "safety": -0.488,
+        "smoothness": 0.756
+      },
+      "delta_vs_first_weeks": -4.6
+    },
+    "OP1009": {
+      "skill_score": 41.2,
+      "level": "Beginner",
+      "trend": "steady",
+      "components": {
+        "efficiency": 29.0,
+        "compliance": 48.8,
+        "safety": 32.5,
+        "smoothness": 70.3
+      },
+      "weeks_of_history": 20,
+      "as_of": "2025-04-28",
+      "slope_per_week": -0.108,
+      "component_trend": {
+        "efficiency": -0.031,
+        "compliance": 0.514,
+        "safety": -0.637,
+        "smoothness": -0.242
+      },
+      "delta_vs_first_weeks": 6.6
+    },
+    "OP1010": {
+      "skill_score": 60.0,
+      "level": "Intermediate",
+      "trend": "steady",
+      "components": {
+        "efficiency": 72.1,
+        "compliance": 92.4,
+        "safety": 27.9,
+        "smoothness": 46.1
+      },
+      "weeks_of_history": 23,
+      "as_of": "2025-04-28",
+      "slope_per_week": 0.084,
+      "component_trend": {
+        "efficiency": 0.35,
+        "compliance": -0.004,
+        "safety": 0.367,
+        "smoothness": -0.871
+      },
+      "delta_vs_first_weeks": 2.2
+    },
+    "OP1011": {
+      "skill_score": 34.9,
+      "level": "Beginner",
+      "trend": "declining",
+      "components": {
+        "efficiency": 39.1,
+        "compliance": 38.6,
+        "safety": 26.3,
+        "smoothness": 37.6
+      },
+      "weeks_of_history": 21,
+      "as_of": "2025-04-28",
+      "slope_per_week": -0.458,
+      "component_trend": {
+        "efficiency": -0.356,
+        "compliance": 0.606,
+        "safety": -1.786,
+        "smoothness": 0.22
+      },
+      "delta_vs_first_weeks": -18.4
+    },
+    "OP1012": {
+      "skill_score": 42.2,
+      "level": "Beginner",
+      "trend": "improving",
+      "components": {
+        "efficiency": 15.1,
+        "compliance": 56.3,
+        "safety": 45.7,
+        "smoothness": 65.9
+      },
+      "weeks_of_history": 18,
+      "as_of": "2025-04-21",
+      "slope_per_week": 0.485,
+      "component_trend": {
+        "efficiency": 0.387,
+        "compliance": 0.646,
+        "safety": 0.009,
+        "smoothness": 1.363
+      },
+      "delta_vs_first_weeks": 9.4
+    }
+  },
+  "weekly": {
+    "OP1001": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 42.6
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 45.6
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 43.2
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 56.3
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 46.8
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 54.8
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 53.6
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 31.1
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 46.5
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 37.0
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 50.9
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 50.9
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 43.1
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 36.6
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 54.2
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 46.5
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 53.1
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 50.4
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 56.9
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 48.5
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 53.6
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 50.6
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 45.9
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 40.7
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 36.6
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 41.4
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 56.9
+      }
+    ],
+    "OP1002": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 72.1
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 56.3
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 76.6
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 74.7
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 81.0
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 67.7
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 66.9
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 68.1
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 70.7
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 81.9
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 78.3
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 72.1
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 66.9
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 77.8
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 61.8
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 71.9
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 72.3
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 82.6
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 80.3
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 77.3
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 79.3
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 78.6
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 69.0
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 63.8
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 63.2
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 64.2
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 82.6
+      }
+    ],
+    "OP1003": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 57.7
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 43.1
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 53.9
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 44.4
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 51.1
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 60.7
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 52.6
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 44.8
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 56.0
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 44.9
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 54.1
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 43.2
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 66.5
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 54.9
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 54.4
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 47.0
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 51.7
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 66.7
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 65.8
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 40.3
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 41.3
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 56.7
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 49.4
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 43.0
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 45.0
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 54.9
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 49.2
+      }
+    ],
+    "OP1004": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 42.5
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 29.4
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 29.0
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 25.8
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 26.3
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 28.1
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 25.4
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 24.9
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 25.5
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 30.7
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 31.6
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 34.7
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 21.8
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 24.8
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 35.6
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 27.1
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 25.3
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 36.6
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 33.0
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 32.6
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 20.6
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 20.8
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 35.3
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 26.0
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 46.3
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 39.7
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 18.9
+      }
+    ],
+    "OP1005": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 73.3
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 66.4
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 50.1
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 66.5
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 68.1
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 61.5
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 73.4
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 67.3
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 55.2
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 55.1
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 62.0
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 67.2
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 58.7
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 76.6
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 74.3
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 73.0
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 65.4
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 70.1
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 69.9
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 57.0
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 50.2
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 60.7
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 73.9
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 68.4
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 63.6
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 66.4
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 61.6
+      }
+    ],
+    "OP1006": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 80.3
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 36.5
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 43.0
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 44.8
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 56.0
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 52.8
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 50.3
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 41.7
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 57.3
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 45.0
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 65.6
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 61.8
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 64.4
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 68.4
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 49.1
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 67.3
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 60.4
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 40.8
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 64.1
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 43.8
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 48.5
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 46.6
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 51.0
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 39.3
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 27.6
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 48.4
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 59.0
+      }
+    ],
+    "OP1007": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 36.9
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 19.3
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 19.4
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 30.5
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 18.3
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 28.3
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 18.5
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 15.9
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 15.0
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 25.4
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 19.8
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 22.5
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 32.6
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 20.7
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 17.7
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 22.4
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 29.8
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 22.5
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 24.8
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 28.5
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 21.2
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 17.7
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 33.1
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 14.4
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 28.7
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 24.6
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 27.3
+      }
+    ],
+    "OP1008": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 79.6
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 41.1
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 50.8
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 62.9
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 60.0
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 55.2
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 43.8
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 47.1
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 39.9
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 52.1
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 52.0
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 50.8
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 62.5
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 56.3
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 54.7
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 59.8
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 63.9
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 60.1
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 72.9
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 55.9
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 64.6
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 36.7
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 55.1
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 44.9
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 48.3
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 56.7
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 52.8
+      }
+    ],
+    "OP1009": [
+      {
+        "week": "2024-11-04",
+        "skill_score": 24.9
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 51.8
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 31.4
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 53.6
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 37.1
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 45.3
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 44.5
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 48.9
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 41.5
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 40.3
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 54.1
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 49.3
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 51.2
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 50.4
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 30.7
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 44.3
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 24.4
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 28.6
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 42.3
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 57.2
+      }
+    ],
+    "OP1010": [
+      {
+        "week": "2024-11-04",
+        "skill_score": 71.1
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 43.5
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 73.6
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 92.3
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 57.2
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 79.0
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 88.4
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 67.0
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 80.9
+      },
+      {
+        "week": "2025-01-13",
+        "skill_score": 78.3
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 52.0
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 75.0
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 90.9
+      },
+      {
+        "week": "2025-02-10",
+        "skill_score": 77.5
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 90.6
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 84.0
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 76.7
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 64.0
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 76.9
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 42.8
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 71.0
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 75.5
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 48.4
+      }
+    ],
+    "OP1011": [
+      {
+        "week": "2024-11-04",
+        "skill_score": 52.2
+      },
+      {
+        "week": "2024-11-11",
+        "skill_score": 51.2
+      },
+      {
+        "week": "2024-11-18",
+        "skill_score": 54.1
+      },
+      {
+        "week": "2024-11-25",
+        "skill_score": 60.9
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 45.4
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 39.4
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 38.9
+      },
+      {
+        "week": "2024-12-30",
+        "skill_score": 40.1
+      },
+      {
+        "week": "2025-01-06",
+        "skill_score": 57.6
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 54.2
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 49.1
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 29.1
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 66.0
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 75.5
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 46.7
+      },
+      {
+        "week": "2025-03-24",
+        "skill_score": 71.9
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 35.2
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 31.3
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 14.9
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 50.3
+      },
+      {
+        "week": "2025-04-28",
+        "skill_score": 37.2
+      }
+    ],
+    "OP1012": [
+      {
+        "week": "2024-10-28",
+        "skill_score": 35.3
+      },
+      {
+        "week": "2024-11-04",
+        "skill_score": 21.7
+      },
+      {
+        "week": "2024-12-02",
+        "skill_score": 36.8
+      },
+      {
+        "week": "2024-12-09",
+        "skill_score": 50.0
+      },
+      {
+        "week": "2024-12-16",
+        "skill_score": 32.6
+      },
+      {
+        "week": "2024-12-23",
+        "skill_score": 19.6
+      },
+      {
+        "week": "2025-01-20",
+        "skill_score": 18.1
+      },
+      {
+        "week": "2025-01-27",
+        "skill_score": 46.9
+      },
+      {
+        "week": "2025-02-03",
+        "skill_score": 49.9
+      },
+      {
+        "week": "2025-02-17",
+        "skill_score": 21.3
+      },
+      {
+        "week": "2025-02-24",
+        "skill_score": 44.6
+      },
+      {
+        "week": "2025-03-03",
+        "skill_score": 39.8
+      },
+      {
+        "week": "2025-03-10",
+        "skill_score": 45.7
+      },
+      {
+        "week": "2025-03-17",
+        "skill_score": 17.1
+      },
+      {
+        "week": "2025-03-31",
+        "skill_score": 46.0
+      },
+      {
+        "week": "2025-04-07",
+        "skill_score": 35.4
+      },
+      {
+        "week": "2025-04-14",
+        "skill_score": 39.3
+      },
+      {
+        "week": "2025-04-21",
+        "skill_score": 47.2
+      }
+    ]
+  },
+  "built_at": "2026-09-23T10:22:27.001431+00:00"
+}

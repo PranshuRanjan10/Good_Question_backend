@@ -1,0 +1,50 @@
+{
+  "n_train": 106678,
+  "n_test": 21259,
+  "positive_rate": 0.014640018133925292,
+  "test_from": "2025-04-01",
+  "weights_hand": {
+    "seatbelt": 0.2,
+    "proximity": 0.3,
+    "behaviour": 0.2,
+    "fatigue": 0.15,
+    "conditions": 0.15
+  },
+  "weights_learned": {
+    "seatbelt": 0.0885,
+    "proximity": 0.1904,
+    "behaviour": 0.2375,
+    "fatigue": 0.239,
+    "conditions": 0.2445
+  },
+  "coefficients": {
+    "seatbelt": -0.0471,
+    "proximity": 0.2404,
+    "behaviour": 0.6716,
+    "fatigue": 1.6183,
+    "conditions": 1.6892
+  },
+  "auc": {
+    "hand_weighted_score": 0.5852,
+    "learned_weighted_score": 0.5997,
+    "logistic_probability": 0.6062
+  },
+  "auc_incident_now": {
+    "hand_weighted_score": 0.6313,
+    "learned_weighted_score": 0.6493
+  },
+  "coefficients_incident_now": {
+    "seatbelt": 0.168,
+    "proximity": 1.2635,
+    "behaviour": 2.6053,
+    "fatigue": 1.5275,
+    "conditions": 1.5394
+  },
+  "average_precision": {
+    "hand_weighted_score": 0.0167,
+    "learned_weighted_score": 0.0171
+  },
+  "incident_rate_worst_5pct": 0.0254,
+  "incident_rate_rest": 0.0104,
+  "lift_worst_5pct": 2.4
+}

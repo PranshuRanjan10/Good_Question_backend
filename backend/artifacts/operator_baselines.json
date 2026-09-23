@@ -1,0 +1,222 @@
+{
+  "fleet": {
+    "idle_ratio": 0.24,
+    "idle_min_per_hour": 9.0,
+    "fuel_per_cycle_l": 4.116,
+    "cycles_per_engine_hour": 1.325,
+    "seatbelt_compliance_pct": 100.0
+  },
+  "operators": {
+    "OP1001": {
+      "idle_ratio": 0.21,
+      "idle_min_per_hour": 10.0,
+      "fuel_per_cycle_l": 0.158,
+      "cycles_per_engine_hour": 80.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1002": {
+      "idle_ratio": 0.163,
+      "idle_min_per_hour": 6.0,
+      "fuel_per_cycle_l": 0.134,
+      "cycles_per_engine_hour": 97.5,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1003": {
+      "idle_ratio": 0.183,
+      "idle_min_per_hour": 8.0,
+      "fuel_per_cycle_l": 0.181,
+      "cycles_per_engine_hour": 81.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1004": {
+      "idle_ratio": 0.217,
+      "idle_min_per_hour": 10.0,
+      "fuel_per_cycle_l": 0.298,
+      "cycles_per_engine_hour": 60.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1005": {
+      "idle_ratio": 0.183,
+      "idle_min_per_hour": 8.0,
+      "fuel_per_cycle_l": 0.196,
+      "cycles_per_engine_hour": 103.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1006": {
+      "idle_ratio": 0.246,
+      "idle_min_per_hour": 11.0,
+      "fuel_per_cycle_l": 0.148,
+      "cycles_per_engine_hour": 76.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1007": {
+      "idle_ratio": 0.233,
+      "idle_min_per_hour": 11.0,
+      "fuel_per_cycle_l": 0.118,
+      "cycles_per_engine_hour": 64.5,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1008": {
+      "idle_ratio": 0.19,
+      "idle_min_per_hour": 8.0,
+      "fuel_per_cycle_l": 0.156,
+      "cycles_per_engine_hour": 84.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1009": {
+      "idle_ratio": 0.217,
+      "idle_min_per_hour": 9.0,
+      "fuel_per_cycle_l": 0.236,
+      "cycles_per_engine_hour": 61.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1010": {
+      "idle_ratio": 0.161,
+      "idle_min_per_hour": 6.0,
+      "fuel_per_cycle_l": 0.149,
+      "cycles_per_engine_hour": 100.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1011": {
+      "idle_ratio": 0.25,
+      "idle_min_per_hour": 12.0,
+      "fuel_per_cycle_l": 0.166,
+      "cycles_per_engine_hour": 79.05,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP1012": {
+      "idle_ratio": 0.217,
+      "idle_min_per_hour": 10.0,
+      "fuel_per_cycle_l": 0.237,
+      "cycles_per_engine_hour": 60.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9111": {
+      "idle_ratio": 0.354,
+      "idle_min_per_hour": 8.0,
+      "fuel_per_cycle_l": 5.671,
+      "cycles_per_engine_hour": 1.45,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9160": {
+      "idle_ratio": 0.228,
+      "idle_min_per_hour": 6.5,
+      "fuel_per_cycle_l": 4.084,
+      "cycles_per_engine_hour": 0.85,
+      "seatbelt_compliance_pct": 94.45
+    },
+    "OP9191": {
+      "idle_ratio": 0.276,
+      "idle_min_per_hour": 8.0,
+      "fuel_per_cycle_l": 7.178,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9207": {
+      "idle_ratio": 0.672,
+      "idle_min_per_hour": 8.0,
+      "fuel_per_cycle_l": 3.78,
+      "cycles_per_engine_hour": 0.85,
+      "seatbelt_compliance_pct": 50.0
+    },
+    "OP9247": {
+      "idle_ratio": 0.326,
+      "idle_min_per_hour": 14.0,
+      "fuel_per_cycle_l": 8.254,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9260": {
+      "idle_ratio": 0.083,
+      "idle_min_per_hour": 3.0,
+      "fuel_per_cycle_l": 9.735,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9323": {
+      "idle_ratio": 0.188,
+      "idle_min_per_hour": 7.5,
+      "fuel_per_cycle_l": 4.986,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 84.7
+    },
+    "OP9364": {
+      "idle_ratio": 0.361,
+      "idle_min_per_hour": 7.5,
+      "fuel_per_cycle_l": 8.331,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 88.9
+    },
+    "OP9380": {
+      "idle_ratio": 0.273,
+      "idle_min_per_hour": 6.0,
+      "fuel_per_cycle_l": 4.277,
+      "cycles_per_engine_hour": 2.7,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9422": {
+      "idle_ratio": 0.769,
+      "idle_min_per_hour": 10.0,
+      "fuel_per_cycle_l": 2.048,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9428": {
+      "idle_ratio": 0.15,
+      "idle_min_per_hour": 9.0,
+      "fuel_per_cycle_l": 21.34,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 90.0
+    },
+    "OP9514": {
+      "idle_ratio": 0.346,
+      "idle_min_per_hour": 9.0,
+      "fuel_per_cycle_l": 5.404,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 88.5
+    },
+    "OP9540": {
+      "idle_ratio": 0.207,
+      "idle_min_per_hour": 7.0,
+      "fuel_per_cycle_l": 9.814,
+      "cycles_per_engine_hour": 0.9,
+      "seatbelt_compliance_pct": 96.95
+    },
+    "OP9585": {
+      "idle_ratio": 0.39,
+      "idle_min_per_hour": 16.0,
+      "fuel_per_cycle_l": 8.094,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 97.6
+    },
+    "OP9761": {
+      "idle_ratio": 0.324,
+      "idle_min_per_hour": 11.0,
+      "fuel_per_cycle_l": 4.148,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 76.5
+    },
+    "OP9780": {
+      "idle_ratio": 0.359,
+      "idle_min_per_hour": 14.0,
+      "fuel_per_cycle_l": 7.518,
+      "cycles_per_engine_hour": 1.5,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9850": {
+      "idle_ratio": 0.25,
+      "idle_min_per_hour": 12.0,
+      "fuel_per_cycle_l": 10.171,
+      "cycles_per_engine_hour": 1.2,
+      "seatbelt_compliance_pct": 100.0
+    },
+    "OP9911": {
+      "idle_ratio": 0.294,
+      "idle_min_per_hour": 15.0,
+      "fuel_per_cycle_l": 12.052,
+      "cycles_per_engine_hour": 0.0,
+      "seatbelt_compliance_pct": 84.3
+    }
+  },
+  "note": "medians over the full history; used for anomaly explanations"
+}

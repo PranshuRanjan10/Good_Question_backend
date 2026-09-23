@@ -1,0 +1,18 @@
+{
+  "weights": {
+    "seatbelt": 0.0885,
+    "proximity": 0.1904,
+    "behaviour": 0.2375,
+    "fatigue": 0.239,
+    "conditions": 0.2445
+  },
+  "subscores": [
+    "seatbelt",
+    "proximity",
+    "behaviour",
+    "fatigue",
+    "conditions"
+  ],
+  "fitted_on": "readiness_training.csv",
+  "trained_at": "2026-09-23T10:29:34.702413+00:00"
+}

@@ -1,0 +1,71 @@
+{
+  "n_train": 5884,
+  "n_test": 1153,
+  "test_from": "2025-04-01",
+  "mae_min": {
+    "planner_estimate": 14.11,
+    "linear": 6.05,
+    "lgbm_p50": 5.85
+  },
+  "mape_pct": {
+    "planner_estimate": 16.87,
+    "linear": 7.9,
+    "lgbm_p50": 7.63
+  },
+  "p10_p90_coverage_pct": 85.1,
+  "mean_interval_width_min": 20.1,
+  "mae_by_skill": {
+    "Beginner": {
+      "n": 255,
+      "planner": 29.46,
+      "model": 9.02
+    },
+    "Expert": {
+      "n": 331,
+      "planner": 6.57,
+      "model": 4.76
+    },
+    "Intermediate": {
+      "n": 567,
+      "planner": 11.61,
+      "model": 5.06
+    }
+  },
+  "mae_by_weather": {
+    "Cloudy": {
+      "n": 39,
+      "planner": 13.13,
+      "model": 6.2
+    },
+    "Dust": {
+      "n": 158,
+      "planner": 16.18,
+      "model": 7.34
+    },
+    "Extreme Heat": {
+      "n": 105,
+      "planner": 18.46,
+      "model": 7.74
+    },
+    "Rainy": {
+      "n": 18,
+      "planner": 27.5,
+      "model": 9.62
+    },
+    "Storm": {
+      "n": 34,
+      "planner": 40.0,
+      "model": 9.23
+    },
+    "Sunny": {
+      "n": 726,
+      "planner": 11.57,
+      "model": 5.12
+    },
+    "Windy": {
+      "n": 73,
+      "planner": 13.77,
+      "model": 4.45
+    }
+  }
+}

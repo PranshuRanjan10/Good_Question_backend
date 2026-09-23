@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Generated datasets: ~65 MB and fully reproducible.
+# `python data/generate_data.py` recreates them byte-identically (seed 42, ~25 s).
+data/datasets/*.csv
+data/datasets/*.parquet
+data/*.zip
+!data/datasets/README.md
+!data/datasets/training_modules.json
+
+# Raw telemetry logs from the live backend
+backend/logs/
+*.jsonl
+
+# Local DB
+*.db
+*.sqlite3
+
+# Trained artifacts ARE committed: they are small (~3.5 MB total) and the backend
+# needs them at startup, so the frontend/demo works straight after a clone.
+# Delete this section only if the repo gets too heavy.
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+# Hand-off copies: duplicates of files already tracked elsewhere in the repo
+share_with_teammate/
+share_with_teammate.zip
