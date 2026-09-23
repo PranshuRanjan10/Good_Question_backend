@@ -43,11 +43,13 @@ def save_alert(machine_id: str, operator_id: str | None, alert: dict, ts: dateti
                   timestamp=naive_utc(ts)))
 
 
-def acknowledge_alert(alert_id: str) -> None:
+def acknowledge_alert(alert_id: str) -> bool:
+    """Mark the alert acknowledged; False if no alert has that id (the cab socket ignores this)."""
     db = SessionLocal()
     try:
-        db.query(Alert).filter(Alert.alert_id == alert_id).update({"acknowledged": True})
+        n = db.query(Alert).filter(Alert.alert_id == alert_id).update({"acknowledged": True})
         db.commit()
+        return n > 0
     finally:
         db.close()
 
