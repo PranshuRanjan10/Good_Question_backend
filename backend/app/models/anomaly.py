@@ -17,6 +17,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 
+from app.i18n import render_explanation
 from app.rules.engine import run_rules
 
 ARTIFACT_DIR = Path(__file__).resolve().parents[2] / "artifacts"
@@ -121,25 +122,32 @@ _EXPLAIN_MAP = {
 }
 
 
-def explain(row: dict, baseline: dict, anomaly_type: str) -> list[str]:
-    """Compare flagged feature(s) against the operator's baseline
-    (Pranshu's artifacts/operator_baselines.json, per-operator or fleet-wide)."""
-    sentences = []
+def explain_items(row: dict, baseline: dict, anomaly_type: str, finding: dict | None = None) -> list[dict]:
+    """Structured explanation: [{"key", "params"}]. app.i18n renders it in the cab's language;
+    `explain()` renders the English sentences the API has always returned."""
+    items = []
     if anomaly_type in _EXPLAIN_MAP:
         row_key, baseline_key, unit = _EXPLAIN_MAP[anomaly_type]
         cur = row.get(row_key)
         base = baseline.get(baseline_key) if baseline_key else None
         if cur is not None and base is not None:
-            label = row_key.replace("_", " ")
-            u = f" {unit}" if unit else ""
-            sentences.append(f"{label.capitalize()}: {cur:.2f}{u} vs your baseline {base:.2f}{u}")
+            items.append({"key": "expl.compare", "params": {
+                "feature": row_key, "cur": f"{cur:.2f}", "base": f"{base:.2f}", "unit": unit}})
     if anomaly_type == "excessive_idling" and row.get("idle_streak_min"):
-        sentences.append(f"Idling for {row['idle_streak_min']:.0f} min")
+        items.append({"key": "expl.idle_streak", "params": {"min": f"{row['idle_streak_min']:.0f}"}})
     if anomaly_type == "excessive_idling" and row.get("truck_wait_min", 0) > 0:
-        sentences.append("Likely waiting for haul truck")
-    if not sentences:
-        sentences.append(f"Flagged as {anomaly_type.replace('_', ' ')}")
-    return sentences[:3]
+        items.append({"key": "expl.waiting_truck", "params": {}})
+    if not items and finding is not None:
+        items.append({"key": f"expl.rule.{anomaly_type}", "params": finding.get("params", {})})
+    if not items:
+        items.append({"key": "expl.flagged", "params": {"anomaly": anomaly_type}})
+    return items[:3]
+
+
+def explain(row: dict, baseline: dict, anomaly_type: str, finding: dict | None = None) -> list[str]:
+    """Compare flagged feature(s) against the operator's baseline
+    (Pranshu's artifacts/operator_baselines.json, per-operator or fleet-wide)."""
+    return render_explanation("en", explain_items(row, baseline, anomaly_type, finding))
 
 
 _BREAK_EXEMPT = {"excessive_idling", "operator_out_of_seat"}
@@ -165,19 +173,23 @@ def detect_anomalies(row: dict, baseline: dict) -> list[dict]:
     for anomaly_type in rule_findings:
         method = "rule+model" if (is_model_anomaly and model_label == anomaly_type) else "rule"
         score = max(confidence, 0.6) if method == "rule+model" else 0.6
+        items = explain_items(row, baseline, anomaly_type, rule_findings[anomaly_type])
         results.append({
             "anomaly_type": anomaly_type,
             "method": method,
             "score": round(score, 3),
-            "explanation": explain(row, baseline, anomaly_type),
+            "explanation": render_explanation("en", items),
+            "explanation_items": items,
         })
 
     if is_model_anomaly and model_label and model_label not in rule_findings:
+        items = explain_items(row, baseline, model_label)
         results.append({
             "anomaly_type": model_label,
             "method": "model",
             "score": round(confidence, 3),
-            "explanation": explain(row, baseline, model_label),
+            "explanation": render_explanation("en", items),
+            "explanation_items": items,
         })
 
     return results

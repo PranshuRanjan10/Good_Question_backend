@@ -23,6 +23,7 @@ from datetime import timedelta
 from fastapi import WebSocket
 
 from app.db import writes
+from app.i18n import DEFAULT_LANG, localize
 from app.models.anomaly import baseline_for
 
 log = logging.getLogger("ironsense.hub")
@@ -37,20 +38,20 @@ class CabHub:
     def __init__(self, state_manager, decision_layer):
         self.state = state_manager
         self.decision = decision_layer
-        self.clients: dict[str, set[WebSocket]] = {}
+        self.clients: dict[str, dict[WebSocket, str]] = {}      # machine -> {socket: lang}
         self.latest: dict[str, dict] = {}
         self._pending_after: list[tuple[int, str, object]] = []   # (incident_id, machine_id, until)
         self._task: asyncio.Task | None = None
         self._last_sim_assess: dict[str, object] = {}
 
     # ------------------------------------------------------------------ connections
-    async def connect(self, machine_id: str, ws: WebSocket) -> None:
-        self.clients.setdefault(machine_id, set()).add(ws)
+    async def connect(self, machine_id: str, ws: WebSocket, lang: str = DEFAULT_LANG) -> None:
+        self.clients.setdefault(machine_id, {})[ws] = lang
         if machine_id in self.latest:                 # don't make a new screen wait 10 s
-            await self._send(ws, self.latest[machine_id])
+            await self._send(ws, localize(self.latest[machine_id], lang))
 
     def disconnect(self, machine_id: str, ws: WebSocket) -> None:
-        self.clients.get(machine_id, set()).discard(ws)
+        self.clients.get(machine_id, {}).pop(ws, None)
 
     async def _send(self, ws: WebSocket, payload: dict) -> bool:
         try:
@@ -60,7 +61,13 @@ class CabHub:
             return False
 
     async def broadcast(self, machine_id: str, payload: dict) -> None:
-        dead = [ws for ws in list(self.clients.get(machine_id, ())) if not await self._send(ws, payload)]
+        """Send `payload` (English, as assessed) to every screen, rendered in its own language."""
+        rendered: dict[str, dict] = {}
+        dead = []
+        for ws, lang in list(self.clients.get(machine_id, {}).items()):
+            msg = rendered.get(lang) or rendered.setdefault(lang, localize(payload, lang))
+            if not await self._send(ws, msg):
+                dead.append(ws)
         for ws in dead:
             self.disconnect(machine_id, ws)
 
