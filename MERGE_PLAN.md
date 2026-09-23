@@ -23,10 +23,11 @@ conflict, no warning, work quietly lost.
 |---|---|---|
 | `backend/app/ingest/`, `state/`, `rules/`, `api/`, `db/` | Niharika | New files, merge cleanly |
 | `backend/app/models/anomaly.py`, `decision/recommender.py` | Niharika | New files |
+| `backend/app/decision/layer.py`, `backend/app/main.py` | Niharika | Hers: already built and working |
 | `backend/training/train_anomaly.py` | Niharika | New file |
 | `backend/artifacts/anomaly_*.joblib` | Niharika | New file |
 | `backend/app/models/task_time.py`, `readiness.py`, `profile.py` | Pranshu | **She must not edit** |
-| `backend/app/features/`, `decision/assemble.py` | Pranshu | Being written now |
+| `backend/app/features/` | Pranshu | Being written now; plugs into her `decision/layer.py` |
 | `backend/training/train_time.py`, `train_readiness.py`, `build_profiles.py` | Pranshu | |
 | `backend/tools/replay_sim.py` | Pranshu | |
 | `data/generate_data.py`, `data/datasets/README.md` | Pranshu | **Repo version is newer than her zip** |

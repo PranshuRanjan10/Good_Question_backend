@@ -80,6 +80,8 @@ backend/app/api/             REST routes, cab WebSocket
 backend/app/db/              SQLite tables and queries
 backend/app/models/anomaly.py
 backend/app/decision/recommender.py
+backend/app/decision/layer.py      decision layer: wires readiness + anomalies + training recs
+backend/app/main.py                FastAPI entrypoint
 backend/training/train_anomaly.py
 backend/artifacts/anomaly_*.joblib, anomaly_config.json
 ```
@@ -90,15 +92,20 @@ everything else stays as the repo has it.**
 ### Reserved for Pranshu — do not create
 
 ```
-backend/app/features/        feature builder      (in progress)
-backend/app/decision/assemble.py   decision layer (in progress)
+backend/app/features/        feature builder (in progress)
 ```
+
+`backend/app/decision/assemble.py` was previously reserved for Pranshu. **That reservation is
+withdrawn**: it was never written, and Niharika's `decision/layer.py` already does the job.
+Her `layer.py` and `main.py` are the real ones. Pranshu's feature builder will plug into her
+layer rather than compete with it.
 
 ### Shared, may need appending
 
 `backend/requirements.txt` — the repo already includes `websockets`, `httpx`,
 `python-multipart`, `fastapi`, `uvicorn`, `pydantic`, `lightgbm`, `scikit-learn`.
 **Append only** a dependency that is genuinely missing. Never rewrite or reorder the file.
+`sqlalchemy` is approved: append it.
 
 `.gitignore` — keep the repo's version; append lines if needed. Note `data/datasets/*.csv`
 and `*.parquet` are ignored on purpose (65 MB, reproducible).
