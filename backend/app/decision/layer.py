@@ -43,6 +43,11 @@ class DecisionLayer:
         self._alert_seq = 0
         self.last_prediction: dict[str, dict] = {}              # task_id -> latest task_prediction
 
+    def reset(self, machine_id: str) -> None:
+        """New session for this machine (shift_context): forget its active alerts and anomalies."""
+        self._active_alerts.pop(machine_id, None)
+        self._anomaly_seen.pop(machine_id, None)
+
     def _next_alert_id(self) -> str:
         self._alert_seq += 1
         return f"AL-{self._alert_seq:04d}"

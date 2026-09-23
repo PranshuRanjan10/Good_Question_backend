@@ -13,13 +13,17 @@ Rule of thumb: the simulation never decides whether something is dangerous. It j
 
 ## 2. Connections
 
-Base URL during development: `http://<backend-host>:8000`.
+**Live backend:** `https://good-question-backend.onrender.com` (REST) and `wss://good-question-backend.onrender.com` (WebSockets). Use `wss://`, not `ws://`: a browser blocks plain `ws://` from an `https://` page, and Render has no `:8000` port.
+
+Local development: `http://localhost:8000` and `ws://localhost:8000`.
+
+The free plan sleeps after 15 min idle; the first request then takes ~1 min. Open `/api/health` a few minutes before a demo.
 
 | Purpose | Type | Endpoint |
 |---|---|---|
-| Send all telemetry and events | WebSocket (send) | `ws://<host>:8000/ws/telemetry` |
-| Receive live alerts, scores, predictions | WebSocket (receive) | `ws://<host>:8000/ws/cab/EXC001` |
-| Today's tasks | GET | `/api/tasks/today?operator_id=OP1001` |
+| Send all telemetry and events | WebSocket (send) | `wss://good-question-backend.onrender.com/ws/telemetry` |
+| Receive live alerts, scores, predictions | WebSocket (receive) | `wss://good-question-backend.onrender.com/ws/cab/EXC001` |
+| Today's tasks (REST paths are relative to the live base URL) | GET | `/api/tasks/today?operator_id=OP1001` |
 | Incident list | GET | `/api/incidents?operator_id=OP1001` |
 | Report manual incident / near miss | POST | `/api/incidents` |
 | End-of-shift digest | GET | `/api/digest/OP1001` |
@@ -50,7 +54,7 @@ If a message is invalid, the backend replies on the telemetry socket with:
 
 | msg_type | When to send | Notes |
 |---|---|---|
-| shift_context | Once at sim start / operator login. Resend only if something changes. | Machine, operator, tasks, site map, zones, hazards, time_scale |
+| shift_context | Once at sim start / operator login. Resend only if something changes. | Machine, operator, tasks, site map, zones, hazards, time_scale. **Starts a fresh session for that machine**: send it whenever you restart or replay a scenario, even from the same start time. |
 | operation | Every 10 s | Every 2 s if a person is within 20 m. Every 30 s if idle > 2 min. Stop when engine is off. |
 | motion_batch | Every 10 s, containing 10 samples taken 1 s apart | Only while engine is on |
 | proximity | Every 1 s only while any object is within 20 m (35 m in Storm, Fog or at night) | When everything leaves the range, send one message with an empty list, then stop |
@@ -279,7 +283,7 @@ One work cycle (dig → swing loaded → dump → swing empty) takes about 15–
 
 ## 10. What the cab UI receives
 
-`assessment` messages on `ws://<host>:8000/ws/cab/EXC001` (about every 10 s, and immediately on a new alert):
+`assessment` messages on `wss://good-question-backend.onrender.com/ws/cab/EXC001` (about every 10 s, and immediately on a new alert):
 
 ```json
 {

@@ -66,6 +66,10 @@ class CabHub:
 
     # ------------------------------------------------------------------ triggers
     async def on_ingest(self, machine_state, msg_type: str) -> None:
+        if msg_type == "shift_context":             # new session: the state manager already reset
+            self.decision.reset(machine_state.machine_id)
+            self._last_sim_assess.pop(machine_state.machine_id, None)
+            self._pending_after = [p for p in self._pending_after if p[1] != machine_state.machine_id]
         self._drain(machine_state)
         # Window path: every SIM_ASSESS_EVERY of *sim* time (spec: anomaly check every 60 s).
         # The real-time timer alone isn't enough -- at time_scale 60, 10 real seconds is

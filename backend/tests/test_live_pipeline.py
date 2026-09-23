@@ -123,6 +123,20 @@ def test_stale_proximity_clears_the_alert():
     assert not site.alerts("proximity_person_blind_spot")
 
 
+def test_restarted_scenario_with_same_timestamps_still_alerts():
+    site = Site()
+    site.sec += 1
+    site.feed(msg("proximity", site.sec, objects=[person(3.0)]))
+    assert site.alerts("proximity_person_blind_spot")
+    site.op(dt=600)                         # sim runs on ten minutes...
+    # ...then the director restarts the same scenario from the same start time
+    restarted = Site()
+    site.feed(*[m for _, m in restarted.state.buffer.messages])
+    site.sec = restarted.sec + 1
+    site.feed(msg("proximity", site.sec, objects=[person(3.0)]))
+    assert site.alerts("proximity_person_blind_spot"), "old sim time must not make new readings stale"
+
+
 def test_danger_zone_widens_in_rain():
     site = Site(weather="Rainy")
     site.sec += 1

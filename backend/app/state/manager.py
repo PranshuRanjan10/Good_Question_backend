@@ -328,7 +328,10 @@ class StateManager:
     async def ingest(self, msg, raw: dict | None = None) -> MachineState:
         async with self._lock:
             state = self._machines.get(msg.machine_id)
-            if state is None:
+            if state is None or isinstance(msg, ShiftContextMessage):
+                # A shift_context starts a new session. Without a clean slate, a sim restarted
+                # from the same start time sends timestamps "older" than what we've seen, so
+                # every new reading looks stale and alerts stop firing.
                 state = MachineState(msg.machine_id)
                 self._machines[msg.machine_id] = state
 
