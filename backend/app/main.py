@@ -19,6 +19,7 @@ from app.decision.hub import CabHub
 from app.ingest.ws import router as telemetry_router
 from app.api.cab_ws import router as cab_router
 from app.api.rest import router as rest_router
+from app.api.models_api import router as models_router   # Backend 1 (Pranshu)
 
 log = logging.getLogger("ironsense")
 
@@ -58,3 +59,4 @@ app.add_middleware(
 app.include_router(telemetry_router)
 app.include_router(cab_router)
 app.include_router(rest_router)
+app.include_router(models_router)
