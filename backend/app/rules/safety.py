@@ -10,6 +10,7 @@ keep one stable alert_id while the condition lasts. It is stripped before sendin
 """
 
 from __future__ import annotations
+from app.i18n import t
 from app.models.readiness import danger_radius_m
 
 CAUTION_MARGIN_M = 7.0  # spec sample: rain -> danger 8, caution 15
@@ -18,11 +19,24 @@ TILT_LIMIT_DEG = 15.0
 LIGHTNING_STOP_KM = 10.0
 
 
-def _alert(alert_type: str, severity: str, message: str, action: str,
-           note: str | None = None, key: str | None = None) -> dict:
-    return {"alert_type": alert_type, "severity": severity, "message": message,
-            "recommended_action": action, "adjusted_threshold_note": note,
-            "_key": key or alert_type}
+def _alert(alert_type: str, severity: str, params: dict | None = None, variant: str | None = None,
+           note: dict | None = None, key: str | None = None) -> dict:
+    """English text comes from the catalogue; `params` (+ variant / note) ride along so the cab
+    hub can re-render the alert in the operator's language (app/i18n)."""
+    params = dict(params or {})
+    if variant:
+        params["variant"] = variant
+    if note:
+        params["note"] = note
+    cat = f"{alert_type}.{variant}" if variant else alert_type
+    fmt = {k: v for k, v in params.items() if k not in ("variant", "note")}
+    return {"alert_type": alert_type, "severity": severity,
+            "message": t("en", f"{cat}.msg", **fmt),
+            "recommended_action": t("en", f"{cat}.act", **fmt),
+            "adjusted_threshold_note": (t("en", "note.zone_widened", radius=note["radius"],
+                                          reason=", ".join(t("en", f"reason.{r}") for r in note["reasons"]))
+                                        if note else None),
+            "params": params, "_key": key or alert_type}
 
 
 def zone_radii(row: dict) -> dict:
@@ -31,14 +45,18 @@ def zone_radii(row: dict) -> dict:
             "reason": _zone_reason(row)}
 
 
-def _zone_reason(row: dict) -> str | None:
+def _zone_reasons(row: dict) -> list[str]:
     reasons = []
     weather = row.get("weather")
     if weather in ("Rainy", "Fog", "Storm", "Dust"):
         reasons.append(weather.lower())
     if row.get("light") == "night":
         reasons.append("low visibility")
-    return ", ".join(reasons) or None
+    return reasons
+
+
+def _zone_reason(row: dict) -> str | None:
+    return ", ".join(_zone_reasons(row)) or None
 
 
 def _in_blind_spot(bearing: float) -> bool:
@@ -70,19 +88,16 @@ def check_proximity_alerts(machine_state, row: dict) -> list[dict]:
     if not scan:
         return []
     danger = danger_radius_m(row)
-    reason = _zone_reason(row)
-    note = f"Danger zone widened to {danger:.0f} m ({reason})" if reason else None
+    reasons = _zone_reasons(row)
+    note = {"radius": f"{danger:.0f}", "reasons": reasons} if reasons else None
     findings = []
     for obj in scan.objects:
         if obj.object_type != "person" or obj.distance_m >= danger:
             continue
         blind = _in_blind_spot(obj.bearing_deg)
         alert_type = "proximity_person_blind_spot" if blind else "proximity_person_danger"
-        findings.append(_alert(
-            alert_type, "critical",
-            f"Worker {obj.distance_m:.1f} m " + ("behind you, in blind spot" if blind else "away, inside danger zone"),
-            "Stop swing and sound horn" if blind else "Stop and check surroundings",
-            note, key=f"proximity:{obj.object_id}"))
+        findings.append(_alert(alert_type, "critical", {"distance": f"{obj.distance_m:.1f}"},
+                               note=note, key=f"proximity:{obj.object_id}"))
     return findings
 
 
@@ -103,11 +118,10 @@ def check_seatbelt(machine_state) -> dict | None:
             break
     elapsed_s = (op.timestamp - since).total_seconds()
     if elapsed_s > 60:
-        return _alert("seatbelt_off_moving", "critical", "Seatbelt off while operating - logged as a violation",
-                      "Stop and fasten seatbelt")
+        return _alert("seatbelt_off_moving", "critical", variant="critical")
     if elapsed_s > 20:
-        return _alert("seatbelt_off_moving", "high", "Seatbelt still off while operating", "Fasten seatbelt now")
-    return _alert("seatbelt_off_moving", "warning", "Seatbelt off while operating", "Fasten seatbelt")
+        return _alert("seatbelt_off_moving", "high", variant="high")
+    return _alert("seatbelt_off_moving", "warning", variant="warning")
 
 
 def check_out_of_cab(machine_state) -> dict | None:
@@ -117,8 +131,7 @@ def check_out_of_cab(machine_state) -> dict | None:
         return None
     if machine_state.on_break:
         return None
-    return _alert("operator_out_of_cab", "high", "Operator out of cab with engine running",
-                  "Return to cab or shut down the engine")
+    return _alert("operator_out_of_cab", "high")
 
 
 def check_tilt(machine_state) -> dict | None:
@@ -129,8 +142,7 @@ def check_tilt(machine_state) -> dict | None:
     roll = max(abs(r.get("roll_deg") or 0) for r in recent)
     if max(pitch, roll) > TILT_LIMIT_DEG:
         return _alert("tilt_warning", "critical",
-                      f"Pitch/roll {max(pitch, roll):.0f} deg exceeds {TILT_LIMIT_DEG:.0f} deg slope limit",
-                      "Reposition to level ground")
+                      {"deg": f"{max(pitch, roll):.0f}", "limit": f"{TILT_LIMIT_DEG:.0f}"})
     return None
 
 
@@ -147,15 +159,13 @@ def check_lightning(row: dict, machine_state=None) -> dict | None:
                     dist = float(ev)
                 break
     if dist is not None and 0 < dist < LIGHTNING_STOP_KM:
-        return _alert("lightning_nearby", "critical", f"Lightning {dist:.0f} km away: stop work",
-                      "Stop work and move to shelter")
+        return _alert("lightning_nearby", "critical", {"km": f"{dist:.0f}"})
     return None
 
 
 def check_refuel_engine_on(row: dict) -> dict | None:
     if row.get("engine_on") and row.get("fuel_rising"):
-        return _alert("refuel_engine_on", "critical", "Fuel level rising while engine is running",
-                      "Stop engine before refuelling")
+        return _alert("refuel_engine_on", "critical")
     return None
 
 
@@ -174,8 +184,7 @@ def check_geofence(machine_state) -> dict | None:
         elif e.event_type == "geofence_exit":
             exited = ts
     if entered and (exited is None or exited < entered):
-        return _alert("geofence_violation", "high", f"Machine inside no-go zone {zone}",
-                      "Move out of the restricted zone", key=f"geofence:{zone}")
+        return _alert("geofence_violation", "high", {"zone": zone}, key=f"geofence:{zone}")
     return None
 
 
