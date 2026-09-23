@@ -6,7 +6,8 @@ no clustering, no unsupervised method anywhere in this file.
 Usage (paths default to data/datasets/ and backend/artifacts/, matching
 Pranshu's train_time.py / build_profiles.py / train_readiness.py):
 
-    .venv/bin/python backend/training/train_anomaly.py
+    .venv/bin/python backend/training/train_anomaly.py               # train + evaluate
+    .venv/bin/python backend/training/train_anomaly.py --eval-only   # evaluate the saved model, no training
 
 Steps:
   1. Load anomaly_windows_5min.csv, split by time (train Nov-Mar, test April) -
@@ -18,7 +19,8 @@ Steps:
   3. Scale features per machine size using size_factor from machines.csv.
   4. Evaluate precision/recall/F1 PER anomaly_label (never overall accuracy -
      only ~4.9% of windows are anomalous), comparing rules only, model only,
-     and rules + model. Save a confusion table for the pitch.
+     and rules + model, on April. Writes artifacts/evaluation_report.json and
+     artifacts/anomaly_metrics.md (the table for the slides).
   5. Save artifacts/anomaly_model.joblib + artifacts/anomaly_config.json
      (thresholds, feature list, baselines).
 """
@@ -32,7 +34,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report
 from sklearn.preprocessing import LabelEncoder
 
 import sys
@@ -130,43 +132,151 @@ def fit_multiclass_model(train: pd.DataFrame, feat_cols: list[str], label_encode
     return model
 
 
-def predict_model(model: LGBMClassifier, df: pd.DataFrame, feat_cols: list[str]) -> np.ndarray:
-    X = df[feat_cols].fillna(0.0)
-    return model.predict(X)
-
-
-def predict_rules(df: pd.DataFrame) -> np.ndarray:
-    flags = []
-    for _, row in df.iterrows():
-        flags.append(1 if run_rules(row.to_dict()) else 0)
-    return np.array(flags)
-
-
-def evaluate_binary(y_true: np.ndarray, y_pred: np.ndarray, name: str, labels: pd.Series) -> dict:
-    print(f"\n=== {name} (binary is_anomaly) ===")
-    report = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
-    print(classification_report(y_true, y_pred, zero_division=0))
-    cm = confusion_matrix(y_true, y_pred)
-    print("Confusion matrix [ [TN FP] [FN TP] ]:\n", cm)
-
-    per_label = {}
-    for label in labels.dropna().unique():
-        mask = labels == label
-        if mask.sum() == 0:
-            continue
-        sub_report = classification_report(
-            y_true[mask], y_pred[mask], output_dict=True, zero_division=0
-        )
-        per_label[label] = sub_report.get("1", sub_report.get("weighted avg"))
-
-    return {"overall": report, "confusion_matrix": cm.tolist(), "per_label": per_label}
-
-
 def evaluate_multiclass(y_true_labels: pd.Series, y_pred_labels: np.ndarray, name: str) -> dict:
     print(f"\n=== {name} (multiclass anomaly_label, anomalous rows only) ===")
     report = classification_report(y_true_labels, y_pred_labels, output_dict=True, zero_division=0)
     print(classification_report(y_true_labels, y_pred_labels, zero_division=0))
     return report
+
+
+def add_context_flags(df: pd.DataFrame, minute_path: Path) -> pd.DataFrame:
+    """Evaluation-time context, from minute_telemetry.parquet, that the live row already carries.
+
+    The live feature row knows whether the operator is on a declared break and whether the engine
+    was started outside the schedule; the 5-minute windows CSV has neither, so without them the
+    rules look far noisier offline than they are live (engine-idling on a break is normal, and
+    every 'normal' window with the seat empty is a break). These columns are used only by the
+    rules and never by the model: the model's features are untouched.
+
+      on_break                      any minute of the window is in break mode
+      seat_empty_outside_break_min  engine on, seat empty, not on a break
+      engine_started_outside_hours  the current engine-on run began outside the scheduled hours
+                                    (overtime that carries on from the shift is normal)
+    """
+    m = pd.read_parquet(minute_path, columns=["timestamp", "machine_id", "mode", "engine_state",
+                                              "seat_occupied", "within_scheduled_hours"])
+    m = m.sort_values(["machine_id", "timestamp"]).reset_index(drop=True)
+    m["engine_on"] = m.engine_state != "off"
+    m["is_break"] = m["mode"] == "break"
+    m["seat_empty_nb"] = m.engine_on & ~m.seat_occupied & ~m.is_break
+    run_no = (m.engine_on != m.engine_on.shift()).groupby(m.machine_id).cumsum()
+    run = m.machine_id + "_" + run_no.astype(str)
+    run_started_in_hours = m.groupby(run).within_scheduled_hours.transform("first").astype(bool)
+    m["started_outside"] = m.engine_on & ~run_started_in_hours
+    m["timestamp"] = m.timestamp.dt.floor("5min")
+    g = (m.groupby(["machine_id", "timestamp"])
+          .agg(on_break=("is_break", "max"), seat_empty_outside_break_min=("seat_empty_nb", "sum"),
+               engine_started_outside_hours=("started_outside", "max")).reset_index())
+    return df.merge(g, on=["machine_id", "timestamp"], how="left")
+
+
+RULE_COLUMNS = ["on_break", "seat_empty_outside_break_min", "engine_started_outside_hours"]
+BELT = "seatbelt_off_while_moving"
+
+
+def rule_labels(df: pd.DataFrame) -> pd.DataFrame:
+    """One boolean column per rule (named after the anomaly_label it detects)."""
+    rows = df.to_dict("records")
+    hits = [{f["anomaly_type"] for f in run_rules(r)} for r in rows]
+    labels = sorted({name for h in hits for name in h})
+    return pd.DataFrame({name: [name in h for h in hits] for name in labels}, index=df.index)
+
+
+def model_labels(bundle: dict, df: pd.DataFrame, feat_cols: list[str], threshold: float) -> pd.Series:
+    """The label the model reports for each window ('' when it reports nothing), exactly as
+    app/models/anomaly.py does it: probability >= decision_threshold, then the multiclass head
+    names it, and a declared break silences the idle / out-of-seat labels."""
+    from app.models.anomaly import _BREAK_EXEMPT
+    X = df[feat_cols].fillna(0.0)
+    flagged = bundle["binary"].predict_proba(X)[:, 1] >= threshold
+    out = pd.Series("", index=df.index, dtype=object)
+    if flagged.any():
+        idx = bundle["multiclass"].predict(X[flagged])
+        out[flagged] = bundle["label_encoder"].inverse_transform(idx)
+    if "on_break" in df:
+        out[df["on_break"].fillna(False).astype(bool) & out.isin(_BREAK_EXEMPT)] = ""
+    return out
+
+
+def prf(tp: int, fired: int, support: int) -> dict:
+    p = tp / fired if fired else 0.0
+    r = tp / support if support else 0.0
+    return {"precision": round(p, 3), "recall": round(r, 3),
+            "f1": round(2 * p * r / (p + r), 3) if p + r else 0.0, "fired": int(fired), "tp": int(tp)}
+
+
+def evaluate(test: pd.DataFrame, bundle: dict, feat_cols: list[str], threshold: float) -> dict:
+    """Per-label precision / recall / F1 for rules only, model only and rules + model on the test
+    month, plus the overall binary numbers with and without the seatbelt label.
+
+    Per label L: 'fired' = windows the method reports as L (a rule named L fired, or the model
+    named L), true positives = those whose anomaly_label is L, support = windows labelled L."""
+    rules = rule_labels(test)
+    model = model_labels(bundle, test, feat_cols, threshold)
+    label = test[LABEL_COL]
+    labels = sorted(set(label.dropna()) - {"normal"})
+
+    per_label = {}
+    for name in labels:
+        support = int((label == name).sum())
+        by_rules = rules[name] if name in rules else pd.Series(False, index=test.index)
+        by_model = model == name
+        row = {"support": support}
+        for method, fired in (("rules", by_rules), ("model", by_model), ("rules_plus_model", by_rules | by_model)):
+            row[method] = prf(int((fired & (label == name)).sum()), int(fired.sum()), support)
+        row["has_rule"] = name in rules.columns
+        per_label[name] = row
+
+    def overall(drop_belt: bool) -> dict:
+        keep = (label != BELT) if drop_belt else pd.Series(True, index=test.index)
+        y = (test[TARGET_COL] == 1) & keep
+        rule_any = (rules.drop(columns=[BELT], errors="ignore") if drop_belt else rules).any(axis=1)
+        model_any = (model != "") & ((model != BELT) if drop_belt else True)
+        out = {}
+        for method, fired in (("rules", rule_any), ("model", model_any), ("rules_plus_model", rule_any | model_any)):
+            f = fired & keep
+            out[method] = prf(int((f & y).sum()), int(f.sum()), int(y.sum()))
+        return out
+
+    return {"threshold": threshold, "test_rows": int(len(test)), "anomalous_rows": int((test[TARGET_COL] == 1).sum()),
+            "per_label": per_label, "overall_all_labels": overall(False),
+            "overall_excluding_seatbelt": overall(True)}
+
+
+def metrics_markdown(ev: dict) -> str:
+    """The table for the slides."""
+    def cells(m: dict, has: bool = True) -> str:
+        return f"{m['precision']:.2f} | {m['recall']:.2f} | {m['f1']:.2f}" if has else "n/a | n/a | n/a"
+
+    lines = ["# Anomaly detector: precision / recall / F1 by label",
+             "",
+             f"Test month: April 2025 ({ev['test_rows']:,} five-minute windows, {ev['anomalous_rows']:,} anomalous). "
+             f"Trained on Nov-Mar; the split is by time, never random. Model decision threshold {ev['threshold']}.",
+             "",
+             "P = precision, R = recall. Per label, a method 'fires' when it reports that label "
+             "(a rule named after it fires, or the model names it).",
+             "",
+             "| Label | Windows | Rules P | R | F1 | Model P | R | F1 | Rules + model P | R | F1 |",
+             "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    for name, r in sorted(ev["per_label"].items(), key=lambda kv: -kv[1]["support"]):
+        star = "*" if name == BELT else ""
+        lines.append(f"| {name}{star} | {r['support']} | {cells(r['rules'], r['has_rule'])} | "
+                     f"{cells(r['model'])} | {cells(r['rules_plus_model'])} |")
+    lines += ["", "Overall (any anomaly, binary):", "",
+              "| | Rules P | R | F1 | Model P | R | F1 | Rules + model P | R | F1 |",
+              "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    for title, key in (("Excluding seatbelt (target set)", "overall_excluding_seatbelt"), ("All labels", "overall_all_labels")):
+        o = ev[key]
+        lines.append(f"| {title} | {cells(o['rules'])} | {cells(o['model'])} | {cells(o['rules_plus_model'])} |")
+    lines += ["",
+              "\\* Known data limitation: the simulator only labels *injected* seatbelt episodes. Unbelted digging "
+              "that happens naturally is labelled `normal` even though the alert is correct, so this label's "
+              "precision is understated. It is reported on its own and left out of the overall target.",
+              "",
+              "Rules use the same context flags the live row carries (declared break, engine started outside "
+              "the schedule), rebuilt from `minute_telemetry.parquet` for evaluation.",
+              "Labels with no rule (`low_productivity`) are detected by the model only."]
+    return "\n".join(lines) + "\n"
 
 
 def build_baselines(hourly_summaries_path: Path) -> dict:
@@ -180,12 +290,29 @@ def build_baselines(hourly_summaries_path: Path) -> dict:
     return baselines
 
 
+def write_reports(ev: dict, out: Path, multiclass: dict | None = None) -> None:
+    report = {"decision_threshold": ev["threshold"], "evaluation": ev}
+    if multiclass is not None:
+        report["multiclass"] = multiclass
+    (out / "evaluation_report.json").write_text(json.dumps(report, indent=2, default=str))
+    (out / "anomaly_metrics.md").write_text(metrics_markdown(ev), encoding="utf-8")
+    o = ev["overall_excluding_seatbelt"]
+    print("\nOverall, excluding the seatbelt label (precision / recall):")
+    for method in ("rules", "model", "rules_plus_model"):
+        print(f"  {method:17s} {o[method]['precision']:.3f} / {o[method]['recall']:.3f}")
+    print(f"\nSaved {out / 'evaluation_report.json'}\nSaved {out / 'anomaly_metrics.md'}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=Path, default=DS / "anomaly_windows_5min.csv")
     parser.add_argument("--machines", type=Path, default=DS / "machines.csv")
     parser.add_argument("--hourly", type=Path, default=DS / "hourly_summaries.csv")
+    parser.add_argument("--minutes", type=Path, default=DS / "minute_telemetry.parquet")
     parser.add_argument("--out", type=Path, default=ART)
+    parser.add_argument("--eval-only", action="store_true",
+                        help="score the saved artifacts/anomaly_model.joblib on April and rewrite the "
+                             "reports; nothing is trained and the model files are not touched")
     args = parser.parse_args()
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -193,8 +320,16 @@ def main():
     train, test = load_and_split(args.data, args.machines)
     print(f"Train rows: {len(train)}  Test rows: {len(test)}")
     print(f"Train anomaly rate: {train[TARGET_COL].mean():.3%}  Test anomaly rate: {test[TARGET_COL].mean():.3%}")
-
+    test = add_context_flags(test, args.minutes)
     feat_cols = feature_columns(train)
+
+    if args.eval_only:
+        bundle = joblib.load(args.out / "anomaly_model.joblib")
+        config = json.loads((args.out / "anomaly_config.json").read_text())
+        write_reports(evaluate(test, bundle, config["feature_list"],
+                               float(config.get("decision_threshold", DECISION_THRESHOLD))), args.out)
+        return
+
     missing = [f for f in FEATURE_LIST if f not in train.columns and f"{f}_scaled" not in train.columns]
     if missing:
         print(f"WARNING: columns not found in dataset, skipping: {missing}")
@@ -205,29 +340,15 @@ def main():
 
     binary_model = fit_binary_model(train, feat_cols)
     multiclass_model = fit_multiclass_model(train, feat_cols, label_encoder)
+    bundle = {"binary": binary_model, "multiclass": multiclass_model, "label_encoder": label_encoder}
 
-    y_true = test[TARGET_COL].values
-    labels = test[LABEL_COL] if LABEL_COL in test.columns else pd.Series([None] * len(test))
-
-    rules_pred = predict_rules(test)
-    model_pred = predict_model(binary_model, test, feat_cols)
-    combined_pred = np.clip(rules_pred + model_pred, 0, 1)
-
-    results = {
-        "rules_only": evaluate_binary(y_true, rules_pred, "Rules only", labels),
-        "model_only": evaluate_binary(y_true, model_pred, "LightGBM only", labels),
-        "rules_plus_model": evaluate_binary(y_true, combined_pred, "Rules + LightGBM", labels),
-    }
-
-    # multiclass eval, anomalous test rows only
-    anomalous_test = test[test[TARGET_COL] == 1].copy()
+    multiclass = None
+    anomalous_test = test[test[TARGET_COL] == 1]
     if len(anomalous_test) > 0:
-        X_anom = anomalous_test[feat_cols].fillna(0.0)
-        pred_class_idx = multiclass_model.predict(X_anom)
-        pred_labels = label_encoder.inverse_transform(pred_class_idx)
-        results["multiclass"] = evaluate_multiclass(anomalous_test[LABEL_COL].fillna("unknown"), pred_labels, "Anomaly type naming")
+        pred = label_encoder.inverse_transform(multiclass_model.predict(anomalous_test[feat_cols].fillna(0.0)))
+        multiclass = evaluate_multiclass(anomalous_test[LABEL_COL].fillna("unknown"), pred, "Anomaly type naming")
 
-    (args.out / "evaluation_report.json").write_text(json.dumps(results, indent=2, default=str))
+    write_reports(evaluate(test, bundle, feat_cols, DECISION_THRESHOLD), args.out, multiclass)
 
     baselines = build_baselines(args.hourly) if args.hourly.exists() else {}
 
@@ -245,13 +366,10 @@ def main():
         "baselines_fallback": baselines,  # prefer artifacts/operator_baselines.json (Pranshu's) at runtime
     }
 
-    joblib.dump({"binary": binary_model, "multiclass": multiclass_model, "label_encoder": label_encoder},
-                args.out / "anomaly_model.joblib")
+    joblib.dump(bundle, args.out / "anomaly_model.joblib")
     (args.out / "anomaly_config.json").write_text(json.dumps(config, indent=2, default=str))
-
     print(f"\nSaved model to {args.out / 'anomaly_model.joblib'}")
     print(f"Saved config to {args.out / 'anomaly_config.json'}")
-    print(f"Saved evaluation report to {args.out / 'evaluation_report.json'}")
 
 
 if __name__ == "__main__":

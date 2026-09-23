@@ -38,7 +38,9 @@ def rule_excessive_idling(row: dict) -> dict | None:
 
 
 def rule_over_rev(row: dict) -> dict | None:
-    if row.get("rpm_max", 0) > THRESHOLDS["rpm_max"]:
+    # Sustained, not a blip: see THRESHOLDS["over_rev_peak_rpm"].
+    if (row.get("rpm_max", 0) > THRESHOLDS["over_rev_peak_rpm"]
+            and row.get("over_rev_min", 0) >= THRESHOLDS["over_rev_min"]):
         return _finding("over_rev", {"rpm": f"{row['rpm_max']:.0f}", "limit": THRESHOLDS["rpm_max"]}, "danger")
     return None
 
@@ -50,7 +52,7 @@ def rule_fast_swing(row: dict) -> dict | None:
 
 
 def rule_harsh_operation(row: dict) -> dict | None:
-    if row.get("harsh_brake_count", 0) > 0 and row.get("fast_swing_count", 0) > 0:
+    if row.get("harsh_brake_count", 0) >= THRESHOLDS["harsh_brake_count"]:
         return _finding("harsh_operation")
     return None
 
@@ -111,6 +113,8 @@ def rule_seatbelt_off_while_moving(row: dict) -> dict | None:
 
 
 def rule_fatigue(row: dict) -> dict | None:
+    if row.get("on_break"):
+        return None
     if row.get("continuous_operation_min", 0) > THRESHOLDS["continuous_op_min_max"]:
         return _finding("fatigue", {"min": f"{row['continuous_operation_min']:.0f}"})
     return None
