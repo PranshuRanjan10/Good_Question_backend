@@ -51,6 +51,47 @@ def tasks_today(operator_id: str, request: Request):
     return {"operator_id": operator_id, "tasks": []}
 
 
+@router.get("/fleet/summary")
+def fleet_summary(request: Request):
+    """Supervisor view: one row per machine seen since the server started (sim time), read from the
+    latest assessment the cab hub holds in memory. Lowest Readiness first, so the machine that
+    needs attention is at the top. Nothing is queried from the database."""
+    hub = request.app.state.hub
+    state = request.app.state.state_manager
+    machines = []
+    for machine_id, a in hub.latest.items():
+        ms = state.get(machine_id)
+        op = ms.latest_operation if ms is not None else None
+        alerts = a.get("alerts", [])
+        anomalies = a.get("anomalies", [])
+        pred = a.get("task_prediction")
+        task_id = (pred or {}).get("task_id") or (op.task_id if op else None)
+        machines.append({
+            "machine_id": machine_id,
+            "operator_id": op.operator_id if op else None,
+            "timestamp": a.get("timestamp"),
+            "readiness_score": a.get("readiness_score"),
+            "readiness_breakdown": a.get("readiness_breakdown", {}),
+            "active_alerts": len(alerts),
+            "alerts_by_severity": {sev: sum(1 for x in alerts if x.get("severity") == sev)
+                                   for sev in ("info", "warning", "high", "critical")},
+            "open_anomalies": [{"anomaly_type": x["anomaly_type"], "score": x.get("score")} for x in anomalies],
+            "current_task": ({"task_id": task_id, "planned_min": pred.get("planned_min"),
+                              "p50_min": pred.get("p50_min"), "remaining_min": pred.get("remaining_min")}
+                             if pred else None),
+        })
+    machines.sort(key=lambda m: (m["readiness_score"] is None, m["readiness_score"] or 0, m["machine_id"]))
+    scores = [m["readiness_score"] for m in machines if m["readiness_score"] is not None]
+    return {
+        "machines": machines,
+        "totals": {"machines": len(machines),
+                   "active_alerts": sum(m["active_alerts"] for m in machines),
+                   "critical_alerts": sum(m["alerts_by_severity"]["critical"] for m in machines),
+                   "open_anomalies": sum(len(m["open_anomalies"]) for m in machines),
+                   "avg_readiness": round(sum(scores) / len(scores), 1) if scores else None},
+    }
+
+
 @router.get("/incidents")
 def list_incidents(operator_id: str | None = None, machine_id: str | None = None, db: Session = Depends(get_db)):
     q = db.query(Incident)
