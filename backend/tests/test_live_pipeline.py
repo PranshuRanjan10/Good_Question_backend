@@ -302,3 +302,84 @@ def test_live_feature_row_matches_training(tmp_path):
         train = w.loc[common, feature].astype(float).reset_index(drop=True)
         match = ((live - train).abs() <= 0.05 * train.abs().clip(lower=1)).mean()
         assert match >= min_match, f"{feature}: only {match:.0%} of windows match training"
+
+
+# ---------------------------------------------------------------- scenarios 5, 8, 10, 11, 12
+
+def test_s5_rain_widens_zones_and_raises_task_prediction():
+    site = Site()
+    before = site.assess().payload
+    assert before["zones"]["danger_radius_m"] == 5.0
+    site.feed(event(site.sec + 1, "weather_change", **{"from": "Cloudy", "to": "Rainy"}),
+              msg("environment", site.sec + 1, environment__weather="Rainy", environment__rain_mm_h=8.0,
+                  environment__ground_condition="wet", environment__visibility_m=400))
+    site.op()
+    after = site.assess().payload
+    assert after["zones"]["danger_radius_m"] == 8.0 and "rainy" in after["zones"]["reason"]
+    assert after["task_prediction"]["p50_min"] > before["task_prediction"]["p50_min"]
+    assert any(f["factor"] == "weather_rainy" for f in after["task_prediction"]["factors"])
+
+
+def test_s8_fast_swing_is_an_unsafe_operation():
+    site = Site()
+    for _ in range(3):                           # 30 s of swinging at 60 deg/s (limit 55)
+        site.sec += 10
+        mb = msg("motion_batch", site.sec, start_timestamp=at(site.sec - 10))
+        mb["samples"] = [[4.0, 1.0, 0.0, 30, 60, 1.5, 1200]] * 10
+        site.feed(mb)
+        site.op(dt=0)
+    types = {a["anomaly_type"] for a in detect_anomalies(site.state.to_feature_row(), {})}
+    assert "fast_swing" in types
+
+
+def test_s8_travel_with_bucket_raised_is_an_unsafe_operation():
+    site = Site()
+    for _ in range(5):                           # 50 s travelling with the bucket at 3 m (> 2.5 m)
+        site.op(motion__ground_speed_kmh=3.0, motion__travel_direction="forward",
+                implement__work_mode="travel")
+        mb = msg("motion_batch", site.sec, start_timestamp=at(site.sec - 10))
+        mb["samples"] = [[4.0, 1.0, 0.0, 0, 0, 3.0, 0]] * 10
+        site.feed(mb)
+    row = site.state.to_feature_row()
+    assert row["bucket_raised_travel_s"] > 30
+    assert "bucket_raised_travel" in {a["anomaly_type"] for a in detect_anomalies(row, {})}
+
+
+def test_s10_overheating_is_a_machine_health_anomaly():
+    site = Site()
+    site.feed(msg("status", site.sec + 1, engine__coolant_temp_c=108.0),
+              event(site.sec + 1, "fault_code", code="COOLANT_HIGH_TEMP"))
+    site.op()
+    overheating = [a for a in detect_anomalies(site.state.to_feature_row(), {})
+                   if a["anomaly_type"] == "overheating"]
+    assert overheating and overheating[0]["method"].startswith("rule")
+
+
+def test_s11_four_hours_without_a_break_is_fatigue_and_lowers_readiness():
+    site = Site()
+    fresh = site.assess().payload["readiness_breakdown"]["fatigue"]
+    for _ in range(2 * 245):                     # 245 min of digging, operation every 30 s
+        site.op(dt=30)
+    row = site.state.to_feature_row()
+    assert row["continuous_operation_min"] > 240
+    assert "fatigue" in {a["anomaly_type"] for a in detect_anomalies(row, {})}
+    assert site.assess().payload["readiness_breakdown"]["fatigue"] < fresh
+
+
+def test_s12_near_miss_report_shows_in_the_incident_list():
+    """End to end through the real app: telemetry socket -> DB -> REST (temp DB from conftest)."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    note = "S12 test: worker walked behind me"
+    sc = msg("shift_context", 0, operator__shift_start=at(0))
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws/telemetry") as ws:
+            for m in (sc, msg("operation", 10), event(20, "manual_near_miss", note=note)):
+                ws.send_json(m)
+            # Messages are handled in order, so the reply to a bad message proves the rest are done.
+            ws.send_json({"msg_type": "operation", "machine_id": "EXC001"})
+            assert ws.receive_json()["msg_type"] == "error"
+        incidents = client.get("/api/incidents", params={"operator_id": "OP1001"}).json()
+    ours = [i for i in incidents if i["cause"] == note]
+    assert ours and ours[0]["incident_type"] == "manual_near_miss" and ours[0]["source"] == "operator"
