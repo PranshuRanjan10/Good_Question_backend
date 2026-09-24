@@ -67,3 +67,10 @@ app.include_router(telemetry_router)
 app.include_router(cab_router)
 app.include_router(rest_router)
 app.include_router(models_router)
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    """The bare URL used to 404; point anyone who opens it at the useful places."""
+    return {"service": "good-question-backend", "status": "ok", "docs": "/docs",
+            "health": "/api/health", "telemetry_ws": "/ws/telemetry", "cab_ws": "/ws/cab/{machine_id}"}
