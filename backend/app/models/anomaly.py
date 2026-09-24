@@ -16,6 +16,7 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import pandas as pd
 
 from app.i18n import render_explanation
 from app.rules.engine import run_rules
@@ -70,7 +71,7 @@ class AnomalyDetector:
     def is_loaded(self) -> bool:
         return self.binary_model is not None
 
-    def _feature_vector(self, row: dict) -> np.ndarray:
+    def _feature_vector(self, row: dict) -> pd.DataFrame:
         feature_list = self.config["feature_list"]
         raw_feature_list = self.config.get("raw_feature_list", feature_list)
         scale_by_size = set(self.config.get("scale_by_size", []))
@@ -81,8 +82,10 @@ class AnomalyDetector:
             v = row.get(raw_name, 0.0) or 0.0
             if raw_name in scale_by_size:
                 v = v / size_factor
-            vals.append(v)
-        return np.array(vals, dtype=float).reshape(1, -1)
+            vals.append(float(v))
+        # Named columns, exactly as in training (feature_list holds the *_scaled names). A bare
+        # array predicts the same, but sklearn logs a UserWarning on every call, flooding the logs.
+        return pd.DataFrame([vals], columns=feature_list)
 
     def predict(self, row: dict) -> tuple[bool, str | None, float]:
         """Returns (is_anomaly, anomaly_label_or_None, confidence 0..1)."""
