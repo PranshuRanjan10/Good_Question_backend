@@ -9,6 +9,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 def init_db():
     from app.db.models import Base
+    import app.db.tracking  # noqa: F401  registers the session-tagging / resync flush hook
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
     _add_missing_columns(Base)

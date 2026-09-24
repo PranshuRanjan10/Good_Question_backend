@@ -6,4 +6,5 @@ from pathlib import Path
 
 _tmp = Path(tempfile.mkdtemp(prefix="ironsense_test_"))
 os.environ.setdefault("IRONSENSE_DB_PATH", str(_tmp / "test.db"))
+os.environ["SYNC_ENABLED"] = "false"                              # tests never push to Supabase
 os.environ.setdefault("IRONSENSE_LOG_DIR", str(_tmp / "raw"))     # raw telemetry logs, not backend/logs

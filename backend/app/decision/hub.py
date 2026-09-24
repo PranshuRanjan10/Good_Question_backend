@@ -23,6 +23,7 @@ from datetime import timedelta
 from fastapi import WebSocket
 
 from app.db import writes
+from app.db.tracking import current_session
 from app.i18n import DEFAULT_LANG, localize
 from app.models.anomaly import baseline_for
 
@@ -77,6 +78,9 @@ class CabHub:
             self.decision.reset(machine_state.machine_id)
             self._last_sim_assess.pop(machine_state.machine_id, None)
             self._pending_after = [p for p in self._pending_after if p[1] != machine_state.machine_id]
+            self._open_session(machine_state)
+        elif current_session(machine_state.machine_id) is None:
+            self._open_session(machine_state)    # data after a server restart, before any shift_context
         self._drain(machine_state)
         # Window path: every SIM_ASSESS_EVERY of *sim* time (spec: anomaly check every 60 s).
         # The real-time timer alone isn't enough -- at time_scale 60, 10 real seconds is
@@ -87,6 +91,15 @@ class CabHub:
             await self.publish(machine_state, routine=True)
         elif msg_type in FAST_PATH_TYPES and self.decision.has_new_alerts(machine_state):
             await self.publish(machine_state, routine=False)
+
+    def _open_session(self, machine_state) -> None:
+        sc = machine_state.shift_context
+        try:
+            writes.open_session(machine_state.machine_id, sc.operator.operator_id if sc else None,
+                                sc.scenario_id if sc else None, sc.seed if sc else None,
+                                sc.time_scale if sc else None, machine_state.sim_now())
+        except Exception:
+            log.exception("opening a session for %s failed", machine_state.machine_id)
 
     async def publish(self, machine_state, routine: bool = True) -> dict | None:
         if machine_state.latest_operation is None:
@@ -122,6 +135,9 @@ class CabHub:
                 writes.save_anomaly(machine_id, operator_id, a, now)
             if routine:
                 writes.save_readiness(machine_id, result.payload, now)
+                session_id = current_session(machine_id)
+                if session_id:
+                    writes.touch_session(session_id, now)
         except Exception:
             log.exception("persisting assessment for %s failed", machine_id)
 

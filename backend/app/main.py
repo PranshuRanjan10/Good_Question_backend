@@ -8,6 +8,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+from app.config import load_env
+load_env()   # backend/.env for local runs; must run before app.db reads IRONSENSE_* paths
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,6 +19,7 @@ from app.db.seed import run_all_seeds
 from app.state.manager import StateManager
 from app.decision.layer import DecisionLayer
 from app.decision.hub import CabHub
+from app.sync.supabase import SupabaseSync
 from app.ingest.ws import router as telemetry_router
 from app.api.cab_ws import router as cab_router
 from app.api.rest import router as rest_router
@@ -42,8 +46,11 @@ async def lifespan(app: FastAPI):
     app.state.decision_layer = DecisionLayer(predict_task=_load_predict_task())
     app.state.hub = CabHub(app.state.state_manager, app.state.decision_layer)
     app.state.hub.start()
+    app.state.sync = SupabaseSync()       # local SQLite -> Supabase, in the background
+    app.state.sync.start()
     yield
     await app.state.hub.stop()
+    await app.state.sync.stop()           # one last push before Render sleeps / redeploys
 
 
 app = FastAPI(title="IronSense backend", lifespan=lifespan)

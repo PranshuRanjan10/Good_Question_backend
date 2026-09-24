@@ -4,6 +4,7 @@ datasets/training_history.csv at startup (see db/seed.py).
 """
 
 from __future__ import annotations
+import uuid
 from datetime import datetime
 
 from sqlalchemy import String, Float, Boolean, DateTime, JSON, Integer
@@ -14,7 +15,24 @@ class Base(DeclarativeBase):
     pass
 
 
-class Incident(Base):
+def _uid() -> str:
+    return uuid.uuid4().hex
+
+
+class Synced:
+    """Columns for the Supabase sync (app/sync). `uid` is the cloud primary key: local ids
+    restart from 1 whenever Render wipes the SQLite file, uids never repeat. `synced_at` is
+    NULL until the row is in Supabase; clearing it re-sends the row (upsert on uid)."""
+    uid: Mapped[str | None] = mapped_column(String, default=_uid, index=True, nullable=True)
+    synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+
+
+class InSession:
+    """Which simulation run (shift_sessions.session_id) produced the row."""
+    session_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+
+
+class Incident(Synced, InSession, Base):
     __tablename__ = "incidents"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     machine_id: Mapped[str] = mapped_column(String, index=True)
@@ -27,7 +45,7 @@ class Incident(Base):
     telemetry_window: Mapped[dict] = mapped_column(JSON, default=dict)  # +/- 30s buffer snapshot
 
 
-class Alert(Base):
+class Alert(Synced, InSession, Base):
     __tablename__ = "alerts"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     alert_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)  # AL-0001, as sent to the cab
@@ -40,7 +58,7 @@ class Alert(Base):
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
-class ReadinessSnapshot(Base):
+class ReadinessSnapshot(Synced, InSession, Base):
     __tablename__ = "readiness_snapshots"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     machine_id: Mapped[str] = mapped_column(String, index=True)
@@ -49,7 +67,7 @@ class ReadinessSnapshot(Base):
     readiness_breakdown: Mapped[dict] = mapped_column(JSON)
 
 
-class TaskRecord(Base):
+class TaskRecord(Synced, InSession, Base):
     __tablename__ = "task_records"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     task_id: Mapped[str] = mapped_column(String, index=True)
@@ -63,7 +81,7 @@ class TaskRecord(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
-class TrainingCompletion(Base):
+class TrainingCompletion(Synced, Base):
     __tablename__ = "training_completions"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     operator_id: Mapped[str] = mapped_column(String, index=True)
@@ -72,7 +90,7 @@ class TrainingCompletion(Base):
     quiz_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
-class AnomalyEvent(Base):
+class AnomalyEvent(Synced, InSession, Base):
     """One row each time an anomaly type starts (not every 10 s while it lasts)."""
     __tablename__ = "anomaly_events"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -85,7 +103,7 @@ class AnomalyEvent(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, index=True)
 
 
-class HourlySummary(Base):
+class HourlySummary(Synced, InSession, Base):
     """The backend-built interval_summary (organizers' telemetry columns)."""
     __tablename__ = "hourly_summaries"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -104,7 +122,7 @@ class HourlySummary(Base):
     fuel_per_cycle_l: Mapped[float] = mapped_column(Float)
 
 
-class InstructorBooking(Base):
+class InstructorBooking(Synced, Base):
     """A booked instructor session (TRN-INSTR-01 or any module an operator wants coaching on)."""
     __tablename__ = "instructor_bookings"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -114,3 +132,19 @@ class InstructorBooking(Base):
     confirmed_slot: Mapped[datetime] = mapped_column(DateTime, index=True)
     status: Mapped[str] = mapped_column(String, default="confirmed")
     created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class ShiftSession(Synced, Base):
+    """One simulation run: opened by a shift_context, kept up to date while telemetry flows."""
+    __tablename__ = "shift_sessions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    machine_id: Mapped[str] = mapped_column(String, index=True)
+    operator_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    scenario_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    time_scale: Mapped[float | None] = mapped_column(Float, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime)          # sim time
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime)        # sim time
+    wall_started_at: Mapped[datetime] = mapped_column(DateTime)     # real UTC time
+    wall_last_seen_at: Mapped[datetime] = mapped_column(DateTime)

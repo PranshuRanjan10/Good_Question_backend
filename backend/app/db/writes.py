@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from app.db.models import (Alert, AnomalyEvent, HourlySummary, Incident, InstructorBooking, ReadinessSnapshot,
-                           TaskRecord, TrainingCompletion)
+                           ShiftSession, TaskRecord, TrainingCompletion)
 from app.db.session import SessionLocal
 
 # Safety alert -> incident type used by incidents.csv / training_modules.json triggers, so an
@@ -47,7 +47,7 @@ def acknowledge_alert(alert_id: str) -> bool:
     """Mark the alert acknowledged; False if no alert has that id (the cab socket ignores this)."""
     db = SessionLocal()
     try:
-        n = db.query(Alert).filter(Alert.alert_id == alert_id).update({"acknowledged": True})
+        n = db.query(Alert).filter(Alert.alert_id == alert_id).update({"acknowledged": True, "synced_at": None})  # bulk update skips the flush hook
         db.commit()
         return n > 0
     finally:
@@ -162,3 +162,34 @@ def bookings_for(operator_id: str) -> list[InstructorBooking]:
                 .order_by(InstructorBooking.confirmed_slot).all())
     finally:
         db.close()
+
+
+def open_session(machine_id: str, operator_id: str | None, scenario_id: str | None, seed: int | None,
+                 time_scale: float | None, sim_ts: datetime) -> str:
+    """A new simulation run. Returns its session_id; rows written for this machine from now on
+    are tagged with it (app/db/tracking.py)."""
+    from app.db.tracking import set_current_session
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    s = _commit(ShiftSession(session_id=_new_session_id(), machine_id=machine_id, operator_id=operator_id,
+                             scenario_id=scenario_id, seed=seed, time_scale=time_scale,
+                             started_at=naive_utc(sim_ts), last_seen_at=naive_utc(sim_ts),
+                             wall_started_at=now, wall_last_seen_at=now))
+    set_current_session(machine_id, s.session_id)
+    return s.session_id
+
+
+def touch_session(session_id: str, sim_ts: datetime) -> None:
+    db = SessionLocal()
+    try:
+        s = db.query(ShiftSession).filter(ShiftSession.session_id == session_id).one_or_none()
+        if s is not None:
+            s.last_seen_at = naive_utc(sim_ts)
+            s.wall_last_seen_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            db.commit()
+    finally:
+        db.close()
+
+
+def _new_session_id() -> str:
+    import uuid
+    return "S-" + uuid.uuid4().hex[:12]

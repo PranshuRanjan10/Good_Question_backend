@@ -3,6 +3,7 @@ Columns per datasets/README.md / the real CSVs in datasets/.
 """
 
 from __future__ import annotations
+from datetime import datetime
 from pathlib import Path
 
 from app.paths import SEED_DIR
@@ -13,6 +14,9 @@ from app.db.models import Incident, TrainingCompletion
 from app.db.session import SessionLocal
 
 DATASETS_DIR = SEED_DIR
+# Seeded rows are the synthetic history, reloaded on every start. Stamping them "already
+# synced" keeps the Supabase sync to live data only (otherwise every restart re-uploads them).
+SEED_MARK = datetime(1970, 1, 1)
 
 
 def seed_incidents():
@@ -34,6 +38,7 @@ def seed_incidents():
                 source=str(row.get("source", "auto")),
                 timestamp=row["timestamp"],
                 telemetry_window={},
+                synced_at=SEED_MARK,
             ))
         session.commit()
     finally:
@@ -57,6 +62,7 @@ def seed_training_history():
                 module_id=str(row["module_id"]),
                 completed_at=row["completed_at"],
                 quiz_score=float(row["quiz_score_pct"]) if pd.notna(row.get("quiz_score_pct")) else None,
+                synced_at=SEED_MARK,
             ))
         session.commit()
     finally:
